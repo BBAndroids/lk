@@ -2365,6 +2365,34 @@ void cmd_oem_devinfo(const char *arg, void *data, unsigned sz)
 	fastboot_okay("");
 }
 
+void cmd_oem_lk_log(const char *arg, void *data, unsigned sz)
+{
+#if WITH_DEBUG_LOG_BUF
+	unsigned i;
+	char* pch;
+	char* buf = strdup(lk_log_getbuf());
+	unsigned size = lk_log_getsize();
+
+	pch = strtok(buf, "\n\r");
+	while (pch != NULL) {
+		char* ptr = pch;
+		while(ptr!=NULL) {
+			fastboot_info(ptr);
+			if(strlen(ptr)>MAX_RSP_SIZE-5)
+				ptr+=MAX_RSP_SIZE-5;
+			else ptr=NULL;
+		}
+
+		pch = strtok(NULL, "\n\r");
+	}
+
+	free(buf);
+	fastboot_okay("");
+#else
+	fastboot_fail("logbuf disabled");
+#endif
+}
+
 void cmd_preflash(const char *arg, void *data, unsigned sz)
 {
 	fastboot_okay("");
@@ -2571,6 +2599,7 @@ void aboot_fastboot_register_commands(void)
 											{"reboot-bootloader", cmd_reboot_bootloader},
 											{"oem unlock", cmd_oem_unlock},
 											{"oem device-info", cmd_oem_devinfo},
+											{"oem lk_log", cmd_oem_lk_log},
 											{"preflash", cmd_preflash},
 											{"oem enable-charger-screen", cmd_oem_enable_charger_screen},
 											{"oem disable-charger-screen", cmd_oem_disable_charger_screen},
