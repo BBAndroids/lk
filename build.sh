@@ -1,0 +1,5 @@
+#!/bin/bash
+
+export CROSS_COMPILE=../arm-eabi-4.8/bin/arm-eabi-
+
+make -C . TOOLCHAIN_PREFIX=$CROSS_COMPILE BOOTLOADER_OUT=. msm8974 EMMC_BOOT=1 SIGNED_KERNEL=0

@@ -222,7 +222,7 @@ static void target_mmc_sdhci_init()
 	 * 400 MHZ --> 384 MHZ
 	 * only for emmc slot
 	 */
-	if (platform_is_8974ac() || platform_is_8x62())
+	if (platform_is_8974ac())
 		config.max_clk_rate = MMC_CLK_192MHZ;
 	else
 		config.max_clk_rate = MMC_CLK_200MHZ;
@@ -382,10 +382,23 @@ static void ssd_load_keystore_from_emmc()
 }
 #endif
 
+void usb_gpio_workaround()
+{
+	gpio_tlmm_config(53, 0, 1, 0, 0, 0);
+	gpio_set(53, 2);
+
+	gpio_tlmm_config(55, 0, 1, 0, 0, 0);
+	gpio_set(55, 2);
+
+	gpio_tlmm_config(16, 0, 1, 0, 0, 0);
+	gpio_set(16, 2);
+}
+
 void target_fastboot_init(void)
 {
 	/* Set the BOOT_DONE flag in PM8921 */
 	pm8x41_set_boot_done();
+	usb_gpio_workaround();
 
 #ifdef SSD_ENABLE
 	clock_ce_enable(SSD_CE_INSTANCE_1);
@@ -770,19 +783,7 @@ void target_usb_stop(void)
 /* identify the usb controller to be used for the target */
 const char * target_usb_controller()
 {
-	switch(board_platform_id())
-	{
-		/* use dwc controller for PRO chips (with some exceptions) */
-		case MSM8974AA:
-		case MSM8974AB:
-		case MSM8974AC:
-			/* exceptions based on hardware id */
-			if (board_hardware_id() != HW_PLATFORM_DRAGON)
-				return "dwc";
-		/* fall through to default "ci" for anything that did'nt select "dwc" */
-		default:
-			return "ci";
-	}
+	return "ci";
 }
 
 /* UTMI MUX configuration to connect PHY to SNPS controller:

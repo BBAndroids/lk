@@ -5,8 +5,8 @@ INCLUDES += -I$(LK_TOP_DIR)/dev/gcdb/display -I$(LK_TOP_DIR)/dev/gcdb/display/in
 
 PLATFORM := msm8974
 
-MEMBASE := 0x0F900000 # SDRAM
-MEMSIZE := 0x00100000 # 1MB
+MEMBASE := 0x100C4000 # SDRAM
+MEMSIZE := 0x00400000 # 4MB
 
 BASE_ADDR        := 0x00000
 
