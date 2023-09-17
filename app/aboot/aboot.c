@@ -60,6 +60,8 @@
 #include <dev_tree.h>
 #endif
 
+#include <pm8x41_led.h>
+
 #include "image_verify.h"
 #include "recovery.h"
 #include "bootimg.h"
@@ -2273,6 +2275,8 @@ void cmd_continue(const char *arg, void *data, unsigned sz)
 	{
 		boot_linux_from_flash();
 	}
+
+	bbry_blink_code(0x21);
 }
 
 void cmd_reboot(const char *arg, void *data, unsigned sz)
@@ -2701,6 +2705,10 @@ void aboot_init(const struct app_descriptor *app)
 	} else if(reboot_mode == FASTBOOT_MODE) {
 		boot_into_fastboot = true;
 	}
+	
+	pm8x41_led_init();
+	pm8x41_led_set_color(0x1E, 0, 0x80);
+	pm8x41_led_enable(1);
 
 	if (!boot_into_fastboot)
 	{
@@ -2720,7 +2728,10 @@ void aboot_init(const struct app_descriptor *app)
 				#endif
 				}
 			}
+
 			boot_linux_from_mmc();
+
+			bbry_blink_code(0x21);
 		}
 		else
 		{

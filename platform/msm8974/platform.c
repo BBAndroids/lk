@@ -37,6 +37,7 @@
 #include <smem.h>
 #include <board.h>
 #include <boot_stats.h>
+#include <platform/bbry.h>
 
 #define MB (1024*1024)
 
@@ -80,6 +81,8 @@ void platform_early_init(void)
 void platform_init(void)
 {
 	dprintf(INFO, "platform_init()\n");
+	
+	bbry_platform_init();
 }
 
 uint32_t platform_get_sclk_count(void)
