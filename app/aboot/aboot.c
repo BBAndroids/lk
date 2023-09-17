@@ -2677,26 +2677,19 @@ void aboot_init(const struct app_descriptor *app)
 	/* Check if we should do something other than booting up */
 	if (keys_get_state(KEY_VOLUMEUP) && keys_get_state(KEY_VOLUMEDOWN))
 	{
-		dprintf(ALWAYS,"dload mode key sequence detected\n");
-		if (set_download_mode(EMERGENCY_DLOAD))
-		{
-			dprintf(CRITICAL,"dload mode not supported by target\n");
-		}
-		else
-		{
-			reboot_device(0);
-			dprintf(CRITICAL,"Failed to reboot into dload mode\n");
-		}
+		dprintf(ALWAYS, "VOL_UP+VOL_DN pressed. Continue booting.\n");
+	}
+	else if (keys_get_state(KEY_VOLUMEUP))
+	{
+		dprintf(ALWAYS, "VOL_UP pressed. Recovery image.\n");
+		boot_into_recovery = 1;
+	}
+	else if(keys_get_state(KEY_VOLUMEDOWN))
+	{
+		dprintf(ALWAYS, "VOL_DN pressed. Fastboot mode.\n");
 		boot_into_fastboot = true;
 	}
-	if (!boot_into_fastboot)
-	{
-		if (keys_get_state(KEY_HOME) || keys_get_state(KEY_VOLUMEUP))
-			boot_into_recovery = 1;
-		if (!boot_into_recovery &&
-			(keys_get_state(KEY_BACK) || keys_get_state(KEY_VOLUMEDOWN)))
-			boot_into_fastboot = true;
-	}
+
 	#if NO_KEYPAD_DRIVER
 	if (fastboot_trigger())
 		boot_into_fastboot = true;
