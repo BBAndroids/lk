@@ -44,3 +44,4 @@ uint32_t qtimer_get_frequency();
 void qtimer_uninit();
 void qtimer_init();
 uint32_t qtimer_tick_rate();
+time_t bbry_current_time();

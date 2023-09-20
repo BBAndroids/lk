@@ -61,6 +61,7 @@
 #endif
 
 #include <pm8x41_led.h>
+#include <platform/bbry.h>
 
 #include "image_verify.h"
 #include "recovery.h"
@@ -2341,32 +2342,47 @@ void cmd_oem_devinfo(const char *arg, void *data, unsigned sz)
 	fastboot_okay("");
 }
 
-void cmd_oem_lk_log(const char *arg, void *data, unsigned sz)
+void fastboot_info_buffer(char *buf, unsigned size)
 {
-#if WITH_DEBUG_LOG_BUF
 	unsigned i;
-	char* pch;
-	char* buf = strdup(lk_log_getbuf());
-	unsigned size = lk_log_getsize();
+	char *pch;
 
 	pch = strtok(buf, "\n\r");
-	while (pch != NULL) {
-		char* ptr = pch;
-		while(ptr!=NULL) {
+	while (pch != NULL)
+	{
+		char *ptr = pch;
+		while (ptr != NULL)
+		{
 			fastboot_info(ptr);
-			if(strlen(ptr)>MAX_RSP_SIZE-5)
-				ptr+=MAX_RSP_SIZE-5;
-			else ptr=NULL;
+			if (strlen(ptr) > MAX_RSP_SIZE - 5)
+				ptr += MAX_RSP_SIZE - 5;
+			else
+				ptr = NULL;
 		}
 
 		pch = strtok(NULL, "\n\r");
 	}
+}
 
-	free(buf);
-	fastboot_okay("");
+void cmd_oem_bootlog(const char *arg, void *data, unsigned sz)
+{
+	uint16_t bbss_log_len;
+	const char *bbss_log = bbry_hwi_get_entry("bbss_log", &bbss_log_len);
+	if (bbss_log)
+		fastboot_info_buffer(bbss_log, bbss_log_len);
+
+	uint16_t sbl_boot_log_buffer_len;
+	const char *sbl_boot_log_buffer = bbry_hwi_get_entry("sbl_boot_log_buffer", &sbl_boot_log_buffer_len);
+	if (sbl_boot_log_buffer)
+		fastboot_info_buffer(sbl_boot_log_buffer, sbl_boot_log_buffer_len);
+
+#if WITH_DEBUG_LOG_BUF
+	fastboot_info_buffer(lk_log_getbuf(), lk_log_getsize());
 #else
-	fastboot_fail("logbuf disabled");
+	fastboot_info("logbuf disabled");
 #endif
+
+	fastboot_okay("");
 }
 
 void cmd_preflash(const char *arg, void *data, unsigned sz)
@@ -2575,7 +2591,7 @@ void aboot_fastboot_register_commands(void)
 											{"reboot-bootloader", cmd_reboot_bootloader},
 											{"oem unlock", cmd_oem_unlock},
 											{"oem device-info", cmd_oem_devinfo},
-											{"oem lk_log", cmd_oem_lk_log},
+											{"oem bootlog", cmd_oem_bootlog},
 											{"preflash", cmd_preflash},
 											{"oem enable-charger-screen", cmd_oem_enable_charger_screen},
 											{"oem disable-charger-screen", cmd_oem_disable_charger_screen},

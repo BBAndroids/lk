@@ -122,3 +122,16 @@ uint32_t qtimer_tick_rate()
 {
 	return ticks_per_sec;
 }
+
+time_t bbry_current_time()
+{
+	static uint32_t dword_1017EB68 = 0;
+	if (!dword_1017EB68)
+	{
+		dword_1017EB68 = ticks_per_sec / 1000000u;
+		if (!(ticks_per_sec / 1000000u))
+			return 1000000LL * (unsigned int)qtimer_current_time();
+	}
+
+	return qtimer_get_phy_timer_cnt() / (unsigned int)dword_1017EB68;
+}
