@@ -143,8 +143,6 @@ static const char *warmboot_cmdline = " qpnp-power-on.warm_boot=1";
 
 static unsigned page_size = 0;
 static unsigned page_mask = 0;
-static char ffbm_mode_string[FFBM_MODE_BUF_SIZE];
-static bool boot_into_ffbm;
 static char target_boot_params[64];
 
 /* Assuming unauthorized kernel image by default */
@@ -275,12 +273,7 @@ unsigned char *update_cmdline(const char * cmdline)
 	if (boot_into_recovery && gpt_exists)
 		cmdline_len += strlen(secondary_gpt_enable);
 
-	if (boot_into_ffbm) {
-		cmdline_len += strlen(androidboot_mode);
-		cmdline_len += strlen(ffbm_mode_string);
-		/* reduce kernel console messages to speed-up boot */
-		cmdline_len += strlen(loglevel);
-	} else if (device.charger_screen_enabled &&
+	if (device.charger_screen_enabled &&
 			target_pause_for_battery_charge()) {
 		pause_at_bootup = 1;
 		cmdline_len += strlen(battchg_pause);
@@ -395,17 +388,7 @@ unsigned char *update_cmdline(const char * cmdline)
 			while ((*dst++ = *src++));
 		}
 
-		if (boot_into_ffbm) {
-			src = androidboot_mode;
-			if (have_cmdline) --dst;
-			while ((*dst++ = *src++));
-			src = ffbm_mode_string;
-			if (have_cmdline) --dst;
-			while ((*dst++ = *src++));
-			src = loglevel;
-			if (have_cmdline) --dst;
-			while ((*dst++ = *src++));
-		} else if (pause_at_bootup) {
+		if (pause_at_bootup) {
 			src = battchg_pause;
 			if (have_cmdline) --dst;
 			while ((*dst++ = *src++));
@@ -791,17 +774,6 @@ int boot_linux_from_mmc(void)
 	uint32_t dt_actual;
 	uint32_t dt_hdr_size;
 #endif
-	if (!boot_into_recovery) {
-		memset(ffbm_mode_string, '\0', sizeof(ffbm_mode_string));
-		rcode = get_ffbm(ffbm_mode_string, sizeof(ffbm_mode_string));
-		if (rcode <= 0) {
-			boot_into_ffbm = false;
-			if (rcode < 0)
-				dprintf(CRITICAL,"failed to get ffbm cookie");
-		} else
-			boot_into_ffbm = true;
-	} else
-		boot_into_ffbm = false;
 	uhdr = (struct boot_img_hdr *)EMMC_BOOT_IMG_HEADER_ADDR;
 	if (!memcmp(uhdr->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE)) {
 		dprintf(INFO, "Unified boot method!\n");
