@@ -35,6 +35,29 @@
 
 static struct smem *smem = (void *)(MSM_SHARED_BASE);
 
+void *smem_get_entry(smem_mem_type_t type, int *p_len)
+{
+	struct smem_alloc_info *ainfo;
+	unsigned src;
+	unsigned size;
+
+	if (type < SMEM_FIRST_VALID_TYPE || type > SMEM_LAST_VALID_TYPE)
+		return NULL;
+
+	/* TODO: Use smem spinlocks */
+	ainfo = &smem->alloc_info[type];
+	if (readl(&ainfo->allocated) == 0)
+		return NULL;
+
+	size = readl(&ainfo->size);
+
+	*p_len = size;
+
+	src = MSM_SHARED_BASE + readl(&ainfo->offset);
+
+	return (void *) src;
+}
+
 /* buf MUST be 4byte aligned, and len MUST be a multiple of 8. */
 unsigned smem_read_alloc_entry(smem_mem_type_t type, void *buf, int len)
 {

@@ -31,6 +31,7 @@
 #include <board.h>
 #include <smem.h>
 #include <baseband.h>
+#include <platform/bbry.h>
 
 static struct board_data board = {UNKNOWN,
 	0,
@@ -124,10 +125,11 @@ static void platform_detect()
 			 * board.target = |subtype| plat_hw_ver major  | plat_hw_ver minor  |hw_platform|
 			 *
 			 */
-			board.target = (((board_info_v8.platform_subtype & 0xff) << 24) |
-						   (((board_info_v8.platform_version >> 16) & 0xff) << 16) |
-						   ((board_info_v8.platform_version & 0xff) << 8) |
-						   (board_info_v8.board_info_v3.hw_platform & 0xff));
+			if (board.platform_hw == HW_PLATFORM_QRD)
+				board.target = (((board_info_v8.platform_subtype & 0xff) << 24) |
+								(((board_info_v8.platform_version >> 16) & 0xff) << 16) |
+								((board_info_v8.platform_version & 0xff) << 8) |
+								(board_info_v8.board_info_v3.hw_platform & 0xff));
 
 			for (i = 0; i < SMEM_V8_SMEM_MAX_PMIC_DEVICES; i++) {
 				board.pmic_info[i].pmic_type = board_info_v8.pmic_info[i].pmic_type;
@@ -155,6 +157,10 @@ static void platform_detect()
 		 *                               |  bits   |       bits    |        |
 		 */
 		board.platform_hlos_subtype = board_get_ddr_subtype() << 8;
+
+		/* BBRY */
+		board.platform_hw = bbry_get_hwid();
+		board.platform_subtype = bbry_get_rev();
 	}
 	else
 	{

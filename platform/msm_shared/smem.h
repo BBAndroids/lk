@@ -394,6 +394,8 @@ typedef enum {
 
 	SMEM_APPS_BOOT_MODE = 106,
 
+	SMEM_ID_VENDOR1 = 135,
+
 	SMEM_BOARD_INFO_LOCATION = 137,
 
 	SMEM_USABLE_RAM_PARTITION_TABLE = 402,
@@ -409,6 +411,8 @@ typedef enum {
 
 	SMEM_MAX_SIZE = SMEM_BOOT_INFO_FOR_APPS + 1,
 } smem_mem_type_t;
+
+void *smem_get_entry(smem_mem_type_t type, int *p_len);
 
 /* Note: buf MUST be 4byte aligned, and max_len MUST be a multiple of 4. */
 unsigned smem_read_alloc_entry(smem_mem_type_t type, void *buf, int max_len);

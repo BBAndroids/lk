@@ -563,16 +563,17 @@ static int platform_dt_absolute_match(struct dt_entry *cur_dt_entry, struct dt_e
 	*  2. find the matched DTB then return 1
 	*  3. otherwise return 0
 	*/
-	if((cur_dt_msm_id == (board_platform_id() & 0x0000ffff)) &&
+	if ((cur_dt_msm_id == (board_platform_id() & 0x0000ffff)) &&
 		(cur_dt_hw_platform == board_hardware_id()) &&
 		(cur_dt_hw_subtype == board_hardware_subtype()) &&
 		(cur_dt_hlos_subtype == target_get_hlos_subtype()) &&
 		(cur_dt_entry->soc_rev <= board_soc_version()) &&
-		((cur_dt_entry->variant_id & 0x00ffff00) <= (board_target_id() & 0x00ffff00)) &&
+		((cur_dt_entry->variant_id & 0x00ffff00) <= (board_hardware_id() & 0x00ffff00)) &&
 		((cur_dt_entry->pmic_rev[0] & 0x00ffff00) <= (board_pmic_target(0) & 0x00ffff00)) &&
 		((cur_dt_entry->pmic_rev[1] & 0x00ffff00) <= (board_pmic_target(1) & 0x00ffff00)) &&
 		((cur_dt_entry->pmic_rev[2] & 0x00ffff00) <= (board_pmic_target(2) & 0x00ffff00)) &&
-		((cur_dt_entry->pmic_rev[3] & 0x00ffff00) <= (board_pmic_target(3) & 0x00ffff00))) {
+		((cur_dt_entry->pmic_rev[3] & 0x00ffff00) <= (board_pmic_target(3) & 0x00ffff00)))
+	{
 
 		dt_node_tmp = dt_entry_list_init();
 		memcpy((char*)dt_node_tmp->dt_entry_m,(char*)cur_dt_entry, sizeof(struct dt_entry));
@@ -719,7 +720,7 @@ static int update_dtb_entry_node(struct dt_entry_node *dt_list, uint32_t dtb_inf
 			break;
 		case DTB_MAJOR_MINOR:
 			current_info = ((dt_node_tmp1->dt_entry_m->variant_id) & 0x00ffff00);
-			board_info = (board_target_id() & 0x00ffff00);
+			board_info = (board_hardware_id() & 0x00ffff00);
 			break;
 		case DTB_PMIC0:
 			current_info = ((dt_node_tmp1->dt_entry_m->pmic_rev[0]) & 0x00ffff00);
@@ -990,7 +991,7 @@ int dev_tree_get_entry_info(struct dt_table *table, struct dt_entry *dt_entry_in
 				dt_entry_info->platform_id, dt_entry_info->soc_rev,
 				dt_entry_info->variant_id, dt_entry_info->board_hw_subtype,
 				board_platform_id(), board_soc_version(),
-				board_target_id(), board_hardware_subtype());
+				board_hardware_id(), board_hardware_subtype());
 		if (dt_entry_info->pmic_rev[0] == 0 && dt_entry_info->pmic_rev[0] == 0 &&
 			dt_entry_info->pmic_rev[0] == 0 && dt_entry_info->pmic_rev[0] == 0) {
 			dprintf(SPEW, "No maintain pmic info in DTB, device pmic info is 0x%0x/0x%x/0x%x/0x%0x\n",
@@ -1008,7 +1009,7 @@ int dev_tree_get_entry_info(struct dt_table *table, struct dt_entry *dt_entry_in
 
 	dprintf(CRITICAL, "ERROR: Unable to find suitable device tree for device (%u/0x%08x/0x%08x/%u)\n",
 			board_platform_id(), board_soc_version(),
-			board_target_id(), board_hardware_subtype());
+			board_hardware_id(), board_hardware_subtype());
 
 	list_for_every_entry(&dt_entry_queue->node, dt_node_tmp1, dt_node, node) {
 		/* free node memory */

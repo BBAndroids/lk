@@ -3,6 +3,8 @@
 #include <pm8x41.h>
 #include <pm8x41_led.h>
 #include <kernel/thread.h>
+#include <smem.h>
+#include <string.h>
 
 static thread_t *blink_thread = NULL;
 static int curr_blink_code = 0;
@@ -85,4 +87,204 @@ void bbry_blink_code(int code)
 void bbry_platform_init(void)
 {
 	create_blink_thread();
+}
+
+static const void *bbry_hwi = NULL;
+static int bbry_rev = 0;
+static int bbry_hwid = 0;
+static const char *bbry_product = NULL;
+static const char *bbry_variant = NULL;
+
+struct hwi_header
+{
+	uint32_t len;
+	uint32_t max_len;
+	uint16_t unk;
+	uint16_t entry_count;
+};
+
+struct hwi_entry_header
+{
+	uint16_t value_len;
+	uint16_t key_len; // -1, because it's buggy.
+};
+
+char *bbry_hwi_get_entry(const char *name, uint16_t *p_len)
+{
+	struct hwi_header *hh = bbry_hwi;
+
+	void *hh_ptr = bbry_hwi + sizeof(struct hwi_header);
+
+	for (int i = 0; i < hh->entry_count; i++)
+	{
+		struct hwi_entry_header *heh = hh_ptr;
+
+		char *key = hh_ptr + sizeof(struct hwi_entry_header) + heh->value_len + 1;
+		char *value = hh_ptr + sizeof(struct hwi_entry_header);
+
+		if (strcmp(key, name) == 0)
+		{
+			if (p_len)
+				*p_len = heh->value_len;
+
+			return value;
+		}
+
+		hh_ptr += sizeof(struct hwi_entry_header) + heh->value_len + heh->key_len;
+	}
+
+	return 0;
+}
+
+static int bbry_calc_hwid(const uint8_t *product, const uint8_t *variant)
+{
+	if (!variant || !product)
+		return 0;
+
+	uint32_t product_sum = 0xFC95D400;
+	if (*product)
+	{
+		uint32_t product_checksum = 0x811C9DC5;
+		uint8_t c_product = *product;
+		do
+		{
+			product_checksum = c_product ^ (0x1000193 * product_checksum);
+			c_product = *++product;
+		} while (c_product);
+		product_sum = (((product_checksum ^ (product_checksum >> 20)) & 0xFFFFF) << 8) | 0xF0000000;
+	}
+
+	uint8_t variant_sum = 0x58;
+	if (*variant)
+	{
+		uint32_t variant_checksum = 0x9DC5;
+		uint8_t c_variant = *variant;
+		do
+		{
+			variant_checksum = c_variant ^ (0x193 * variant_checksum);
+			c_variant = *++variant;
+		} while (c_variant);
+		variant_sum = (variant_checksum ^ (variant_checksum >> 8));
+	}
+
+	return variant_sum | product_sum;
+}
+
+static int bbry_str2num(const char *str, int *num)
+{
+	if (!num || !str)
+		return -1;
+
+	if (str[0] != '0' || str[1] != 'x')
+	{
+		int sum = 0;
+		uint8_t c_ten = *str;
+		while ((uint8_t)(c_ten - '0') <= 9u)
+		{
+			sum = c_ten + 10 * sum - '0';
+
+			c_ten = *++str;
+			if (!c_ten)
+			{
+				*num = sum;
+				return 0;
+			}
+		}
+		return -1;
+	}
+	else
+	{
+		const uint8_t *hex_ptr = str + 2;
+		uint8_t c_hex = *hex_ptr;
+		int sum = 0;
+		do
+		{
+			if ((uint8_t)(c_hex - '0') > 9u)
+			{
+				if ((uint8_t)(c_hex - 'a') > 5u)
+				{
+					if ((uint8_t)(c_hex - 'A') > 5u)
+						return -1;
+
+					sum = (c_hex - '7') | (0x10 * sum);
+				}
+				else
+				{
+					sum = (c_hex - 'W') | (0x10 * sum);
+				}
+			}
+			else
+			{
+				sum = (c_hex - '0') | (0x10 * sum);
+			}
+			c_hex = *++hex_ptr;
+		} while (c_hex);
+
+		*num = sum;
+		return 0;
+	}
+}
+
+static void bbry_load_hwi_from_smem()
+{
+	int hwi_len;
+	void *hwi = smem_get_entry(SMEM_ID_VENDOR1, &hwi_len);
+	if (!hwi)
+	{
+		dprintf(CRITICAL, "ERROR: Failed to read SMEM_ID_VENDOR1\n");
+		return;
+	}
+
+	// TODO: Verify sizes
+
+	bbry_hwi = hwi;
+
+	bbry_product = bbry_hwi_get_entry("product", 0);
+	bbry_variant = bbry_hwi_get_entry("variant", 0);
+
+	if (!bbry_product || !bbry_variant)
+	{
+		dprintf(CRITICAL, "Unable to get product/variant from hwi\n");
+		return;
+	}
+
+	bbry_hwid = bbry_calc_hwid(bbry_product, bbry_variant);
+
+	const char *pcb_rev = bbry_hwi_get_entry("pcb_rev", 0);
+	if (!pcb_rev)
+	{
+		dprintf(CRITICAL, "Unable to get pcb rev from hwi\n");
+		return;
+	}
+
+	int pcb_rev_int;
+	bbry_str2num(pcb_rev, &pcb_rev_int);
+
+	const char *pop_rev = bbry_hwi_get_entry("pop_rev", 0);
+	if (!pop_rev)
+	{
+		dprintf(CRITICAL, "Unable to get pop rev from hwi\n");
+		return;
+	}
+
+	int pop_rev_int;
+	bbry_str2num(pop_rev, &pop_rev_int);
+
+	bbry_rev = pop_rev_int | (pcb_rev_int << 16);
+}
+
+int bbry_get_rev()
+{
+	if (!bbry_rev)
+		bbry_load_hwi_from_smem();
+
+	return bbry_rev;
+}
+
+int bbry_get_hwid()
+{
+	if (!bbry_hwid)
+		bbry_load_hwi_from_smem();
+
+	return bbry_hwid;
 }
