@@ -98,6 +98,8 @@ static uint32_t mmc_sdc_pwrctl_irq[] =
 void target_early_init(void)
 {
 #if WITH_DEBUG_UART
+	bbry_uart_workaround(1);
+
 	uart_dm_init(1, 0, BLSP1_UART1_BASE);
 #endif
 }

@@ -5,6 +5,7 @@
 #include <kernel/thread.h>
 #include <smem.h>
 #include <string.h>
+#include <pm8x41.h>
 
 static thread_t *blink_thread = NULL;
 static int curr_blink_code = 0;
@@ -287,4 +288,47 @@ int bbry_get_hwid()
 		bbry_load_hwi_from_smem();
 
 	return bbry_hwid;
+}
+
+void bbry_uart_workaround(int enable)
+{
+	if (strcmp(bbry_product, "oslo") == 0)
+	{
+		if (enable)
+		{
+			gpio_tlmm_config(45, 0, 1, 0, 0, 1);
+			gpio_set(45, 0);
+		}
+		else
+			gpio_tlmm_config(45, 0, 0, 0, 0, 0);
+
+		enable = 0;
+	}
+
+	struct pm8x41_gpio gpio_in;
+	gpio_in.direction = PM_GPIO_DIR_IN;
+	gpio_in.output_buffer = 0;
+	gpio_in.output_value = 0;
+	gpio_in.pull = PM_GPIO_PULL_UP_30;
+	gpio_in.vin_sel = 3;
+	gpio_in.out_strength = 0;
+	gpio_in.function = 2;
+	gpio_in.inv_int_pol = 0;
+	gpio_in.disable_pin = enable;
+
+	struct pm8x41_gpio gpio_out;
+	gpio_out.direction = PM_GPIO_DIR_OUT;
+	gpio_out.output_buffer = 0;
+	gpio_out.output_value = 0;
+	gpio_out.pull = PM_GPIO_PULL_RESV_2;
+	gpio_out.vin_sel = 3;
+	gpio_out.out_strength = 1;
+	gpio_out.function = 2;
+	gpio_out.inv_int_pol = 0;
+	gpio_out.disable_pin = enable;
+
+	pm8x41_gpio_config(25, &gpio_in);
+	pm8x41_gpio_config(26, &gpio_out);
+	pm8x41_gpio_config(29, &gpio_in);
+	pm8x41_gpio_config(30, &gpio_out);
 }
