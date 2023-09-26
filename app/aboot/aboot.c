@@ -2717,6 +2717,11 @@ void aboot_init(const struct app_descriptor *app)
 				}
 			}
 
+			if (boot_into_recovery)
+				pm8x41_led_set_color(0x80, 0x80, 0x66);
+			else
+				pm8x41_led_enable(0);
+
 			boot_linux_from_mmc();
 
 			bbry_blink_code(0x21);
