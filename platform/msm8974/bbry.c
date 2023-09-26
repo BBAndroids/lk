@@ -7,6 +7,11 @@
 #include <string.h>
 #include <pm8x41.h>
 
+#if PON_VIB_SUPPORT
+#include <vibrator.h>
+#define VIBRATE_TIME 750
+#endif
+
 static thread_t *blink_thread = NULL;
 static int curr_blink_code = 0;
 static int is_blinking_code = 0;
@@ -38,7 +43,7 @@ static int bbry_blink(int *p_blink_code)
 
 	pm8x41_led_init();
 
-	while (1)
+	for (int i = 0; i < 5; i++)
 	{
 		bbry_show_led_color(7);
 		bbry_show_led_color(4);
@@ -54,6 +59,14 @@ static int bbry_blink(int *p_blink_code)
 		}
 		thread_sleep(3000);
 	}
+
+#if PON_VIB_SUPPORT
+	vib_timed_turn_on(VIBRATE_TIME);
+#endif
+
+	thread_sleep(1000);
+
+	shutdown_device();
 }
 
 static void create_blink_thread()
