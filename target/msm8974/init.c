@@ -51,6 +51,11 @@
 #include <platform/gpio.h>
 #include <stdlib.h>
 
+#if PON_VIB_SUPPORT
+#include <vibrator.h>
+#define VIBRATE_TIME 250
+#endif
+
 extern  bool target_use_signed_kernel(void);
 static void set_sdc_power_ctrl();
 
@@ -333,6 +338,10 @@ void target_init(void)
 
 	if (target_use_signed_kernel())
 		target_crypto_init_params();
+
+#if PON_VIB_SUPPORT
+	vib_timed_turn_on(VIBRATE_TIME);
+#endif
 
 	/*
 	 * Set drive strength & pull ctrl for
