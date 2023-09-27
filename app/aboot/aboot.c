@@ -2270,6 +2270,8 @@ void cmd_oem_enable_charger_screen(const char *arg, void *data, unsigned size)
 {
 	dprintf(INFO, "Enabling charger screen check\n");
 	device.charger_screen_enabled = 1;
+	snprintf(charger_screen_enabled, MAX_RSP_SIZE, "%d",
+			 device.charger_screen_enabled);
 	write_device_info(&device);
 	fastboot_okay("");
 }
@@ -2278,6 +2280,8 @@ void cmd_oem_disable_charger_screen(const char *arg, void *data, unsigned size)
 {
 	dprintf(INFO, "Disabling charger screen check\n");
 	device.charger_screen_enabled = 0;
+	snprintf(charger_screen_enabled, MAX_RSP_SIZE, "%d",
+			 device.charger_screen_enabled);
 	write_device_info(&device);
 	fastboot_okay("");
 }
