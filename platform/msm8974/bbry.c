@@ -64,6 +64,9 @@ static int bbry_blink(int *p_blink_code)
 	vib_timed_turn_on(VIBRATE_TIME);
 #endif
 
+	pm8x41_led_set_color(0x80, 0, 0);
+	pm8x41_led_enable(1);
+
 	thread_sleep(1000);
 
 	shutdown_device();
