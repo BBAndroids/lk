@@ -2604,9 +2604,38 @@ void aboot_fastboot_register_commands(void)
 		fastboot_register(cmd_list[i].name,cmd_list[i].cb);
 
 	/* publish variables and their values */
-	fastboot_publish("product",  TARGET(BOARD));
 	fastboot_publish("kernel",   "lk");
 	fastboot_publish("serialno", sn_buf);
+
+	char *product = bbry_hwi_get_entry("product", 0);
+	if (product)
+		fastboot_publish("product", product);
+	else
+		fastboot_publish("product", TARGET(BOARD));
+
+	char *variant = bbry_hwi_get_entry("variant", 0);
+	if (variant)
+		fastboot_publish("variant", variant);
+
+	char *bbss_insecure = bbry_hwi_get_entry("bbss_insecure", 0);
+	if (bbss_insecure)
+		fastboot_publish("bbss_insecure", bbss_insecure);
+
+	char *bbss_wp_type = bbry_hwi_get_entry("bbss_wp_type", 0);
+	if (bbss_wp_type)
+		fastboot_publish("bbss_wp_type", bbss_wp_type);
+
+	char *primary_bc_ver = bbry_hwi_get_entry("primary_bc_ver", 0);
+	if (primary_bc_ver)
+		fastboot_publish("primary_bc_ver", primary_bc_ver);
+
+	char *backup_bc_ver = bbry_hwi_get_entry("backup_bc_ver", 0);
+	if (backup_bc_ver)
+		fastboot_publish("backup_bc_ver", backup_bc_ver);
+
+	char *backup_bootchain = bbry_hwi_get_entry("backup_bootchain", 0);
+	if (backup_bootchain)
+		fastboot_publish("backup_bootchain", backup_bootchain);
 
 	/*
 	 * partition info is supported only for emmc partitions
