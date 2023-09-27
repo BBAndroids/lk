@@ -667,11 +667,8 @@ unsigned target_pause_for_battery_charge(void)
 {
 	uint8_t pon_reason = pm8x41_get_pon_reason();
 
-        /* This function will always return 0 to facilitate
-         * automated testing/reboot with usb connected.
-         * uncomment if this feature is needed */
-	/* if ((pon_reason == USB_CHG) || (pon_reason == DC_CHG))
-		return 1;*/
+	if ((pon_reason == USB_CHG) || (pon_reason == DC_CHG))
+		return 1;
 
 	return 0;
 }
