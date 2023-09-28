@@ -6,6 +6,7 @@
 #include <smem.h>
 #include <string.h>
 #include <pm8x41.h>
+#include <dev/udc.h>
 
 #if PON_VIB_SUPPORT
 #include <vibrator.h>
@@ -43,7 +44,7 @@ static int bbry_blink(int *p_blink_code)
 
 	pm8x41_led_init();
 
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; (i < 5) || udc_is_online(); i++)
 	{
 		bbry_show_led_color(7);
 		bbry_show_led_color(4);

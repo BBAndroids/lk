@@ -83,6 +83,7 @@ int udc_init(struct udc_device *devinfo);
 int udc_register_gadget(struct udc_gadget *gadget);
 int udc_start(void);
 int udc_stop(void);
+int udc_is_online(void);
 
 /* these should probably go elsewhere */
 #define GET_STATUS           0
@@ -124,7 +125,7 @@ int udc_stop(void);
 #define USB_EP_DIR_MASK      0x80
 #define USB_EP_DIR_IN        0x80
 
-struct setup_packet {
+	struct setup_packet {
 	unsigned char type;
 	unsigned char request;
 	unsigned short value;
