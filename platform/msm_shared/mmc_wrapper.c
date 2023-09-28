@@ -577,3 +577,12 @@ void mmc_read_partition_table(uint8_t arg)
 		}
 	}
 }
+
+uint32_t mmc_set_active_partition(int active)
+{
+	uint32_t ret = mmc_sdhci_set_active_partition(target_mmc_device(), active);
+	if (ret)
+		dprintf("Failed setting partition to %d\n", active);
+
+	return ret;
+}

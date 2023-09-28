@@ -2243,3 +2243,21 @@ void mmc_put_card_to_sleep(struct mmc_device *dev)
 	if(sdhci_send_command(&dev->host, &cmd))
 		dprintf(CRITICAL, "card sleep error: %s\n", __func__);
 }
+
+uint32_t mmc_sdhci_set_active_partition(struct mmc_device *dev, int active)
+{
+	uint32_t mmc_ret = 0;
+
+	uint32_t value = (active & 7) | (dev->card.ext_csd[MMC_PART_CONFIG] & (~7));
+
+	mmc_ret = mmc_switch_cmd(&dev->host, &dev->card, MMC_ACCESS_WRITE,
+							 MMC_PART_CONFIG, value);
+
+	if (mmc_ret)
+	{
+		dprintf(CRITICAL, "Switch cmd (partition) failed\n");
+		return mmc_ret;
+	}
+
+	return 0;
+}

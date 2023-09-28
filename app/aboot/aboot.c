@@ -1830,6 +1830,26 @@ void cmd_flash_mmc_img(const char *arg, void *data, unsigned sz)
 			return;
 		}
 	}
+	else if (!strcmp(pname, "phyboot1"))
+	{
+		if (mmc_set_active_partition(2))
+		{
+			fastboot_fail("failed to switch to the boot partition");
+			return;
+		}
+
+		if (mmc_write(0, sz, data))
+		{
+			fastboot_fail("flash write failure");
+			return;
+		}
+
+		if (mmc_set_active_partition(0))
+		{
+			fastboot_fail("failed to switch to the user partition");
+			return;
+		}
+	}
 	else
 	{
 #if VERIFIED_BOOT
