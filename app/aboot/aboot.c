@@ -2748,7 +2748,13 @@ void aboot_init(const struct app_descriptor *app)
 	}
 	
 	pm8x41_led_init();
-	pm8x41_led_set_color(0x1E, 0, 0x80);
+	if (is_backup_bootchain())
+	{
+		pm8x41_led_set_color(0, 0, 0x80);
+		boot_into_fastboot = 1;
+	}
+	else
+		pm8x41_led_set_color(0x1E, 0, 0x80);
 	pm8x41_led_enable(1);
 
 	if (!boot_into_fastboot)

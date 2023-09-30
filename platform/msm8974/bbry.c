@@ -307,6 +307,17 @@ int bbry_get_hwid()
 	return bbry_hwid;
 }
 
+int is_backup_bootchain()
+{
+	char *entry = bbry_hwi_get_entry("backup_bootchain", 0);
+
+	int num;
+	if (bbry_str2num(entry, &num))
+		return 0;
+
+	return num;
+}
+
 void bbry_uart_workaround(int enable)
 {
 	if (strcmp(bbry_product, "oslo") == 0)

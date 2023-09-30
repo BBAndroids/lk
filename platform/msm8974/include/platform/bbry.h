@@ -10,6 +10,8 @@ char *bbry_hwi_get_entry(const char *name, uint16_t *p_len);
 int bbry_get_rev();
 int bbry_get_hwid();
 
+int is_backup_bootchain();
+
 void bbry_uart_workaround(int enable);
 
 #endif
