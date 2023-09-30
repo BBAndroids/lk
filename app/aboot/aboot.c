@@ -2797,9 +2797,6 @@ void aboot_init(const struct app_descriptor *app)
 	/* register aboot specific fastboot commands */
 	aboot_fastboot_register_commands();
 
-	/* dump partition table for debug info */
-	partition_dump();
-
 	/* initialize and start fastboot */
 	fastboot_init(target_get_scratch_address(), target_get_max_flash_size());
 }
