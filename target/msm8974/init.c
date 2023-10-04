@@ -522,7 +522,7 @@ void reboot_device(unsigned reboot_reason)
 	else
 		writel(reboot_reason, RESTART_REASON_ADDR_V2);
 
-	if(reboot_reason == FASTBOOT_MODE)
+	if (reboot_reason == FASTBOOT_MODE || reboot_reason == DLOAD)
 		reset_type = PON_PSHOLD_WARM_RESET;
 	else
 		reset_type = PON_PSHOLD_HARD_RESET;

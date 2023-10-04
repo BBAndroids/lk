@@ -2722,7 +2722,17 @@ void aboot_init(const struct app_descriptor *app)
 	/* Check if we should do something other than booting up */
 	if (keys_get_state(KEY_VOLUMEUP) && keys_get_state(KEY_VOLUMEDOWN))
 	{
-		dprintf(ALWAYS, "VOL_UP+VOL_DN pressed. Continue booting.\n");
+		dprintf(ALWAYS, "dload mode key sequence detected\n");
+		if (set_download_mode(EMERGENCY_DLOAD))
+		{
+			dprintf(CRITICAL, "dload mode not supported by target\n");
+		}
+		else
+		{
+			reboot_device(DLOAD);
+			dprintf(CRITICAL, "Failed to reboot into dload mode\n");
+		}
+		boot_into_fastboot = true;
 	}
 	else if (keys_get_state(KEY_VOLUMEUP))
 	{
