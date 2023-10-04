@@ -307,6 +307,22 @@ int bbry_get_hwid()
 	return bbry_hwid;
 }
 
+const char *bbry_get_product()
+{
+	if (!bbry_product)
+		bbry_load_hwi_from_smem();
+
+	return bbry_product;
+}
+
+const char *bbry_get_variant()
+{
+	if (!bbry_variant)
+		bbry_load_hwi_from_smem();
+
+	return bbry_variant;
+}
+
 int is_backup_bootchain()
 {
 	char *entry = bbry_hwi_get_entry("backup_bootchain", 0);
@@ -320,7 +336,7 @@ int is_backup_bootchain()
 
 void bbry_uart_workaround(int enable)
 {
-	if (strcmp(bbry_product, "oslo") == 0)
+	if (strcmp(bbry_get_product(), "oslo") == 0)
 	{
 		if (enable)
 		{

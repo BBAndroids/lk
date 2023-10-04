@@ -9,6 +9,8 @@ char *bbry_hwi_get_entry(const char *name, uint16_t *p_len);
 
 int bbry_get_rev();
 int bbry_get_hwid();
+const char *bbry_get_product();
+const char *bbry_get_variant();
 
 int is_backup_bootchain();
 
