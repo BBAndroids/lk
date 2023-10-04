@@ -31,7 +31,7 @@
 #ifndef __APP_FASTBOOT_H
 #define __APP_FASTBOOT_H
 
-#define MAX_RSP_SIZE            64
+#define MAX_RSP_SIZE            128
 #define MAX_GET_VAR_NAME_SIZE   256
 
 int fastboot_init(void *xfer_buffer, unsigned max);

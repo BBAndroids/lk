@@ -79,7 +79,7 @@ int _dputs(const char *str)
 
 int _dprintf(const char *fmt, ...)
 {
-	char buf[256];
+	char buf[1024];
 	char ts_buf[13];
 	int err;
 
