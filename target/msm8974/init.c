@@ -652,20 +652,7 @@ int target_cont_splash_screen()
 {
 	uint8_t splash_screen = 0;
 	if(!splash_override) {
-		switch(board_hardware_id())
-		{
-			case HW_PLATFORM_SURF:
-			case HW_PLATFORM_MTP:
-			case HW_PLATFORM_FLUID:
-			case HW_PLATFORM_DRAGON:
-			case HW_PLATFORM_LIQUID:
-				dprintf(SPEW, "Target_cont_splash=1\n");
-				splash_screen = 1;
-				break;
-			default:
-				dprintf(SPEW, "Target_cont_splash=0\n");
-				splash_screen = 0;
-		}
+		splash_screen = 1;
 	}
 	return splash_screen;
 }

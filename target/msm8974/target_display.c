@@ -243,48 +243,22 @@ int target_panel_clock(uint8_t enable, struct msm_panel_info *pinfo)
 int target_panel_reset(uint8_t enable, struct panel_reset_sequence *resetseq,
 					struct msm_panel_info *pinfo)
 {
-	uint32_t rst_gpio = reset_gpio.pin_id;
-	uint32_t platform_id = board_platform_id();
-	uint32_t hardware_id = board_hardware_id();
-
-	struct pm8x41_gpio resetgpio_param = {
-		.direction = PM_GPIO_DIR_OUT,
-		.output_buffer = PM_GPIO_OUT_CMOS,
-		.out_strength = PM_GPIO_OUT_DRIVE_MED,
-	};
-
-	if (platform_id == MSM8974AC)
-		if ((hardware_id == HW_PLATFORM_MTP)
-		    || (hardware_id == HW_PLATFORM_LIQUID))
-			rst_gpio = 20;
-
-	dprintf(SPEW, "platform_id: %u, rst_gpio: %u\n",
-				platform_id, rst_gpio);
-
-	pm8x41_gpio_config(rst_gpio, &resetgpio_param);
-	if (enable) {
-		gpio_tlmm_config(enable_gpio.pin_id, 0,
-			enable_gpio.pin_direction, enable_gpio.pin_pull,
-			enable_gpio.pin_strength, enable_gpio.pin_state);
-
-		gpio_set(enable_gpio.pin_id, resetseq->pin_direction);
-		pm8x41_gpio_set(rst_gpio, resetseq->pin_state[0]);
-		mdelay(resetseq->sleep[0]);
-		pm8x41_gpio_set(rst_gpio, resetseq->pin_state[1]);
-		mdelay(resetseq->sleep[1]);
-		pm8x41_gpio_set(rst_gpio, resetseq->pin_state[2]);
-		mdelay(resetseq->sleep[2]);
-	} else {
-		resetgpio_param.out_strength = PM_GPIO_OUT_DRIVE_LOW;
-		pm8x41_gpio_config(rst_gpio, &resetgpio_param);
-		pm8x41_gpio_set(rst_gpio, PM_GPIO_FUNC_LOW);
-		gpio_set(enable_gpio.pin_id, resetseq->pin_direction);
-	}
-	return NO_ERROR;
+		return NO_ERROR;
 }
 
 int target_ldo_ctrl(uint8_t enable)
 {
+	if (enable) {
+		if (strcmp(bbry_get_product(), "oslo") == 0)
+			gpio_tlmm_config(46, 0, 0, 0, 0, 0);
+
+		gpio_tlmm_config(49, 0, 1, 0, 0, 1);
+		gpio_set(49, 0);
+		mdelay(1);
+	} else {
+		gpio_set(49, 0);
+	}
+
 	uint32_t ldocounter = 0;
 	uint32_t pm8x41_ldo_base = 0x13F00;
 
@@ -294,7 +268,7 @@ int target_ldo_ctrl(uint8_t enable)
 			ldo_entry_array[ldocounter].ldo_type);
 
 		dprintf(SPEW, "Setting %s\n",
-				ldo_entry_array[ldocounter].ldo_id);
+				ldo_entry_array[ldocounter].ldo_name);
 
 		/* Set voltage during power on */
 		if (enable) {
@@ -305,6 +279,17 @@ int target_ldo_ctrl(uint8_t enable)
 			pm8x41_ldo_control(&ldo_entry, enable);
 		}
 		ldocounter++;
+	}
+
+	if (enable) {
+		udelay(6);
+		gpio_tlmm_config(8, 0, 1, 0, 0, 1);
+		gpio_set(8, 2);
+		udelay(200);
+		gpio_set(49, 2);
+		mdelay(60);
+	} else {
+		gpio_set(8, 0);
 	}
 
 	return NO_ERROR;
