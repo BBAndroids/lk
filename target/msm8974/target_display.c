@@ -55,7 +55,8 @@ static struct pm8x41_wled_data wled_ctrl = {
 	.led3_brightness = (0x0F << 8) | 0xEF,
 	.max_duty_cycle  = 0x01,
 	.ovp = 0x2,
-	.full_current_scale = 0x19
+	.full_current_scale = 0x19,
+	.fdbck = 0x01
 };
 
 static uint32_t dsi_pll_lock_status(uint32_t ctl_base)
