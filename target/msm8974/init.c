@@ -408,14 +408,17 @@ static void ssd_load_keystore_from_emmc()
 }
 #endif
 
-void usb_gpio_workaround()
+void analogix_usb_passthrough()
 {
+	// analogix,v10-ctrl
 	gpio_tlmm_config(53, 0, 1, 0, 0, 0);
 	gpio_set(53, 2);
 
+	// analogix,reset
 	gpio_tlmm_config(55, 0, 1, 0, 0, 0);
 	gpio_set(55, 2);
 
+	// analogix,p-dwn
 	gpio_tlmm_config(16, 0, 1, 0, 0, 0);
 	gpio_set(16, 2);
 }
@@ -424,7 +427,7 @@ void target_fastboot_init(void)
 {
 	/* Set the BOOT_DONE flag in PM8921 */
 	pm8x41_set_boot_done();
-	usb_gpio_workaround();
+	analogix_usb_passthrough();
 
 #ifdef SSD_ENABLE
 	clock_ce_enable(SSD_CE_INSTANCE_1);
