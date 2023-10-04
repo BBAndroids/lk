@@ -324,6 +324,13 @@ void target_mmc_caps(struct mmc_host *host)
 }
 #endif
 
+void disable_afp_wdog(void)
+{
+	dprintf(CRITICAL, "Disabling AFP WDOG!!\n");
+	pm8x41_reg_write(0x16D0, 165);
+	pm8x41_reg_write(0x1645, 0);
+	pm8x41_reg_write(5840, 0);
+}
 
 void target_init(void)
 {
@@ -354,6 +361,8 @@ void target_init(void)
 #else
 	target_mmc_mci_init();
 #endif
+
+	disable_afp_wdog();
 }
 
 unsigned board_machtype(void)
