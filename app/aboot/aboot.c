@@ -141,6 +141,7 @@ static const char *baseband_dsda    = " androidboot.baseband=dsda";
 static const char *baseband_dsda2   = " androidboot.baseband=dsda2";
 static const char *baseband_sglte2  = " androidboot.baseband=sglte2";
 static const char *warmboot_cmdline = " qpnp-power-on.warm_boot=1";
+static const char *bbry_cmdline = " androidboot.hardware=qcom androidboot.binfo.hwid=0xf5b242c3 androidboot.binfo.rev=131077 androidboot.binfo.name=oslorow androidboot.binfo.product=oslo androidboot.binfo.variant=row androidboot.binfo.model=Unknown androidboot.binfo.model_num=Unknown androidboot.bootchart=0 androidboot.binfo.bsis_type=bsis_lite androidboot.binfo.bbss_insecure=true androidboot.binfo.bbss_wp_type=none androidboot.binfo.backup_bc_ver=AAA469 androidboot.binfo.primary_bc_ver=AAA625 pathtrust=0 console=ttyHSL0,115200,n8 earlyprintk androidboot.console_en=1";
 
 static unsigned page_size = 0;
 static unsigned page_mask = 0;
@@ -347,6 +348,8 @@ unsigned char *update_cmdline(const char * cmdline)
 		cmdline_len += strlen(warmboot_cmdline);
 	}
 
+	cmdline_len += strlen(bbry_cmdline);
+
 	if (cmdline_len > 0) {
 		const char *src;
 		unsigned char *dst = (unsigned char*) malloc((cmdline_len + 4) & (~3));
@@ -475,6 +478,10 @@ unsigned char *update_cmdline(const char * cmdline)
 			src = target_boot_params;
 			while ((*dst++ = *src++));
 		}
+
+		if (have_cmdline) --dst;
+		src = bbry_cmdline;
+		while ((*dst++ = *src++));
 	}
 
 
@@ -988,8 +995,10 @@ int boot_linux_from_mmc(void)
 
 		if(hdr->second_size != 0) {
 			offset += second_actual;
+#if 0
 			/* Second image loading not implemented. */
 			ASSERT(0);
+#endif
 		}
 
 		#if DEVICE_TREE
@@ -2760,6 +2769,7 @@ void aboot_init(const struct app_descriptor *app)
 	pm8x41_led_init();
 	if (is_backup_bootchain())
 	{
+		dprintf(ALWAYS, "Backup bootchain\n");
 		pm8x41_led_set_color(0, 0, 0x80);
 		boot_into_fastboot = 1;
 	}

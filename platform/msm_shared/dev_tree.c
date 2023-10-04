@@ -551,8 +551,8 @@ static int platform_dt_absolute_match(struct dt_entry *cur_dt_entry, struct dt_e
 	*        |reserved|foundry-id|msm-id|
 	*/
 	cur_dt_msm_id = (cur_dt_entry->platform_id & 0x0000ffff);
-	cur_dt_hw_platform = (cur_dt_entry->variant_id & 0x000000ff);
-	cur_dt_hw_subtype = (cur_dt_entry->board_hw_subtype & 0xff);
+	cur_dt_hw_platform = cur_dt_entry->variant_id;
+	cur_dt_hw_subtype = cur_dt_entry->board_hw_subtype;
 
 
 	/* Determine the bits 23:8 to check the DT with the DDR Size */
@@ -565,10 +565,7 @@ static int platform_dt_absolute_match(struct dt_entry *cur_dt_entry, struct dt_e
 	*/
 	if ((cur_dt_msm_id == (board_platform_id() & 0x0000ffff)) &&
 		(cur_dt_hw_platform == board_hardware_id()) &&
-		(cur_dt_hw_subtype == board_hardware_subtype()) &&
-		(cur_dt_hlos_subtype == target_get_hlos_subtype()) &&
 		(cur_dt_entry->soc_rev <= board_soc_version()) &&
-		((cur_dt_entry->variant_id & 0x00ffff00) <= (board_hardware_id() & 0x00ffff00)) &&
 		((cur_dt_entry->pmic_rev[0] & 0x00ffff00) <= (board_pmic_target(0) & 0x00ffff00)) &&
 		((cur_dt_entry->pmic_rev[1] & 0x00ffff00) <= (board_pmic_target(1) & 0x00ffff00)) &&
 		((cur_dt_entry->pmic_rev[2] & 0x00ffff00) <= (board_pmic_target(2) & 0x00ffff00)) &&
