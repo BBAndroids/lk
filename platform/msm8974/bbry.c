@@ -7,6 +7,7 @@
 #include <string.h>
 #include <pm8x41.h>
 #include <dev/udc.h>
+#include <platform/gpio.h>
 
 #if PON_VIB_SUPPORT
 #include <vibrator.h>
@@ -32,7 +33,8 @@ void bbry_show_led_color(int color)
   thread_sleep(250);
 }
 
-static int bbry_blink(int *p_blink_code)
+void shutdown_device();
+static int bbry_blink(void *p_blink_code)
 {
 	if (!p_blink_code)
 	{
@@ -40,7 +42,7 @@ static int bbry_blink(int *p_blink_code)
 		return -1;
 	}
 
-	int blink_code = *p_blink_code;
+	int blink_code = *(int *)p_blink_code;
 
 	pm8x41_led_init();
 
@@ -127,18 +129,18 @@ struct hwi_entry_header
 	uint16_t key_len; // -1, because it's buggy.
 };
 
-char *bbry_hwi_get_entry(const char *name, uint16_t *p_len)
+const char *bbry_hwi_get_entry(const char *name, uint16_t *p_len)
 {
-	struct hwi_header *hh = bbry_hwi;
+	const struct hwi_header *hh = bbry_hwi;
 
-	void *hh_ptr = bbry_hwi + sizeof(struct hwi_header);
+	const void *hh_ptr = bbry_hwi + sizeof(struct hwi_header);
 
 	for (int i = 0; i < hh->entry_count; i++)
 	{
-		struct hwi_entry_header *heh = hh_ptr;
+		const struct hwi_entry_header *heh = hh_ptr;
 
-		char *key = hh_ptr + sizeof(struct hwi_entry_header) + heh->value_len + 1;
-		char *value = hh_ptr + sizeof(struct hwi_entry_header);
+		const char *key = hh_ptr + sizeof(struct hwi_entry_header) + heh->value_len + 1;
+		const char *value = hh_ptr + sizeof(struct hwi_entry_header);
 
 		if (strcmp(key, name) == 0)
 		{
@@ -154,7 +156,7 @@ char *bbry_hwi_get_entry(const char *name, uint16_t *p_len)
 	return 0;
 }
 
-static int bbry_calc_hwid(const uint8_t *product, const uint8_t *variant)
+static int bbry_calc_hwid(const char *product, const char *variant)
 {
 	if (!variant || !product)
 		return 0;
@@ -163,11 +165,11 @@ static int bbry_calc_hwid(const uint8_t *product, const uint8_t *variant)
 	if (*product)
 	{
 		uint32_t product_checksum = 0x811C9DC5;
-		uint8_t c_product = *product;
+		uint8_t c_product = (uint8_t)*product;
 		do
 		{
 			product_checksum = c_product ^ (0x1000193 * product_checksum);
-			c_product = *++product;
+			c_product = (uint8_t) *++product;
 		} while (c_product);
 		product_sum = (((product_checksum ^ (product_checksum >> 20)) & 0xFFFFF) << 8) | 0xF0000000;
 	}
@@ -176,11 +178,11 @@ static int bbry_calc_hwid(const uint8_t *product, const uint8_t *variant)
 	if (*variant)
 	{
 		uint32_t variant_checksum = 0x9DC5;
-		uint8_t c_variant = *variant;
+		uint8_t c_variant = (uint8_t) *variant;
 		do
 		{
 			variant_checksum = c_variant ^ (0x193 * variant_checksum);
-			c_variant = *++variant;
+			c_variant = (uint8_t) *++variant;
 		} while (c_variant);
 		variant_sum = (variant_checksum ^ (variant_checksum >> 8));
 	}
@@ -212,7 +214,7 @@ static int bbry_str2num(const char *str, int *num)
 	}
 	else
 	{
-		const uint8_t *hex_ptr = str + 2;
+		const uint8_t *hex_ptr = (uint8_t *) str + 2;
 		uint8_t c_hex = *hex_ptr;
 		int sum = 0;
 		do
@@ -241,6 +243,70 @@ static int bbry_str2num(const char *str, int *num)
 		*num = sum;
 		return 0;
 	}
+}
+
+struct bbry_remap_table
+{
+	int old;
+	int new;
+};
+
+static struct bbry_remap_table wolverine_na_table[] =
+{
+	{6, 3},
+	{7, 4},
+	{8, 4},
+	{9, 5}
+};
+
+static struct bbry_remap_table wolverine_vzw_table[] =
+{
+	{2, 1},
+	{7, 1},
+	{3, 2},
+	{4, 3},
+	{5, 3},
+	{6, 3},
+	{8, 4},
+	{9, 4},
+	{10, 4}
+};
+
+static struct bbry_remap_table wolverine_emea_table[] =
+{
+	{3, 2},
+	{4, 3},
+	{5, 3},
+	{6, 3},
+	{7, 4},
+	{8, 4}
+};
+
+static int bbry_wolverine_rev_remap(int rev)
+{
+	struct bbry_remap_table *table = NULL;
+	int table_len = 0;
+	if (strcmp(bbry_variant, "na") == 0) {
+		table = &wolverine_na_table;
+		table_len = ARRAY_SIZE(wolverine_na_table);
+	} else if (strcmp(bbry_variant, "vzw") == 0) {
+		table = &wolverine_vzw_table;
+		table_len = ARRAY_SIZE(wolverine_vzw_table);
+	} else if (strcmp(bbry_variant, "emea") == 0) {
+		table = &wolverine_emea_table;
+		table_len = ARRAY_SIZE(wolverine_emea_table);
+	} else
+		return rev;
+
+	for (int i = 0; i < table_len; i++) {
+		if (table[i].old == rev)
+		{
+			dprintf(ALWAYS, "Remapping board rev from %d to %d\n", rev, table[i].new);
+			return table[i].new;
+		}
+	}
+
+	return rev;
 }
 
 static void bbry_load_hwi_from_smem()
@@ -278,17 +344,21 @@ static void bbry_load_hwi_from_smem()
 	int pcb_rev_int;
 	bbry_str2num(pcb_rev, &pcb_rev_int);
 
-	const char *pop_rev = bbry_hwi_get_entry("pop_rev", 0);
-	if (!pop_rev)
-	{
-		dprintf(CRITICAL, "Unable to get pop rev from hwi\n");
-		return;
+	if (strcmp(bbry_product, "wolverine") == 0)	{
+		bbry_rev = bbry_wolverine_rev_remap(pcb_rev_int);
+	} else {
+		const char *pop_rev = bbry_hwi_get_entry("pop_rev", 0);
+		if (!pop_rev)
+		{
+			dprintf(CRITICAL, "Unable to get pop rev from hwi\n");
+			return;
+		}
+
+		int pop_rev_int;
+		bbry_str2num(pop_rev, &pop_rev_int);
+
+		bbry_rev = pop_rev_int | (pcb_rev_int << 16);
 	}
-
-	int pop_rev_int;
-	bbry_str2num(pop_rev, &pop_rev_int);
-
-	bbry_rev = pop_rev_int | (pcb_rev_int << 16);
 }
 
 int bbry_get_rev()
@@ -323,9 +393,27 @@ const char *bbry_get_variant()
 	return bbry_variant;
 }
 
+int bbry_get_device_variant()
+{
+	if (!bbry_rev)
+		bbry_load_hwi_from_smem();
+
+	const char *entry = bbry_hwi_get_entry("device_variant", 0);
+	if (!entry)
+		return -1;
+
+	int num;
+	if (bbry_str2num(entry, &num))
+		return 0;
+
+	return num;
+}
+
 int is_backup_bootchain()
 {
-	char *entry = bbry_hwi_get_entry("backup_bootchain", 0);
+	const char *entry = bbry_hwi_get_entry("backup_bootchain", 0);
+	if (!entry)
+		return 0;
 
 	int num;
 	if (bbry_str2num(entry, &num))
@@ -340,11 +428,11 @@ void bbry_uart_workaround(int enable)
 	{
 		if (enable)
 		{
-			gpio_tlmm_config(45, 0, 1, 0, 0, 1);
+			gpio_tlmm_config(45, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA, GPIO_DISABLE);
 			gpio_set(45, 0);
 		}
 		else
-			gpio_tlmm_config(45, 0, 0, 0, 0, 0);
+			gpio_tlmm_config(45, 0, GPIO_INPUT, GPIO_NO_PULL, GPIO_2MA, GPIO_ENABLE);
 
 		enable = 0;
 	}

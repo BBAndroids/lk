@@ -86,17 +86,19 @@
 
 /* EXT_CSD */
 /* Offsets in the ext csd */
+#define MMC_USR_WP                                171
+#define MMC_BOOT_WP                               173
+#define MMC_BOOT_WP_STATUS                        174
+#define MMC_ERASE_GRP_DEF                         175
+#define MMC_PART_CONFIG                           179
 #define MMC_EXT_MMC_BUS_WIDTH                     183
 #define MMC_EXT_MMC_HS_TIMING                     185
 #define MMC_DEVICE_TYPE                           196
 #define MMC_EXT_HC_WP_GRP_SIZE                    221
-#define MMC_SEC_COUNT4                            215
-#define MMC_SEC_COUNT3                            214
-#define MMC_SEC_COUNT2                            213
 #define MMC_SEC_COUNT1                            212
-#define MMC_PART_CONFIG                           179
-#define MMC_ERASE_GRP_DEF                         175
-#define MMC_USR_WP                                171
+#define MMC_SEC_COUNT2                            213
+#define MMC_SEC_COUNT3                            214
+#define MMC_SEC_COUNT4                            215
 #define MMC_HC_ERASE_GRP_SIZE                     224
 
 /* Values for ext csd fields */

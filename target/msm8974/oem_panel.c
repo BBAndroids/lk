@@ -33,6 +33,7 @@
 #include <msm_panel.h>
 #include <board.h>
 #include <mipi_dsi.h>
+#include <platform/bbry.h>
 
 #include "include/panel.h"
 #include "panel_display.h"
@@ -84,7 +85,33 @@ int oem_panel_select(const char *panel_name, struct panel_struct *panelstruct,
 	panelstruct->laneconfig = &panorama_1440p_cmd_lane_config;
 	panelstruct->paneltiminginfo = &panorama_1440p_cmd_timing_info;
 	panelstruct->panelresetseq = &panorama_1440p_cmd_panel_reset_seq;
-	panelstruct->backlightinfo = &panorama_1440p_cmd_backlight;
+
+	if (strcmp(bbry_get_product(), "wolverine") == 0)
+	{
+		if (strcmp(bbry_get_variant(), "wichita") == 0)
+		{
+			panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_samanta_v2;
+		}
+		else
+		{
+			int board_rev = bbry_get_rev();
+			if (board_rev <= 3) {
+				panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_samanta_v1;
+			} else if (board_rev == 4) {
+				int device_variant = bbry_get_device_variant();
+				if (device_variant == -1)
+					panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_samanta_v2;
+				else if (device_variant != 41)
+					panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_samanta_v1;
+				else
+					panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_wled;
+			} else
+				panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_wled;
+		}
+	}
+	else
+		panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_wled;
+
 	pinfo->mipi.panel_cmds = panorama_1440p_cmd_on_command;
 	pinfo->mipi.num_of_panel_cmds = PANORAMA_1440P_CMD_ON_COMMAND;
 	memcpy(phy_db->timing,

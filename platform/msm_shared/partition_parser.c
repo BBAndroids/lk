@@ -55,6 +55,7 @@ __WEAK void mmc_read_partition_table(uint8_t arg)
 }
 
 static uint32_t mmc_boot_read_gpt(uint32_t block_size);
+static uint32_t mmc_boot_write_gpt(uint32_t block_size);
 static uint32_t mmc_boot_read_mbr(uint32_t block_size);
 static void mbr_fill_name(struct partition_entry *partition_ent,
 						  uint32_t type);
@@ -84,6 +85,7 @@ unsigned int vfat_count = 0;
 struct partition_entry *partition_entries;
 static unsigned gpt_partitions_exist = 0;
 static unsigned partition_count;
+uint8_t disk_guid[GUID_SIZE];
 
 unsigned int partition_read_table()
 {
@@ -114,6 +116,24 @@ unsigned int partition_read_table()
 			return 1;
 		}
 	}
+
+	int userdata_index = partition_get_index("userdata");
+	if (userdata_index != INVALID_PTN) {
+		if (partition_entries[userdata_index].first_lba == partition_entries[userdata_index].last_lba) {
+			dprintf(CRITICAL, "Updateing userdata size\n");
+			uint64_t device_lba_count = mmc_get_device_capacity() / block_size;
+
+			unsigned int partition_entry_array_size = ENTRY_SIZE * partition_count;
+			if (partition_entry_array_size < MIN_PARTITION_ARRAY_SIZE)
+				partition_entry_array_size = MIN_PARTITION_ARRAY_SIZE;
+
+			partition_entries[userdata_index].last_lba = device_lba_count - (((partition_entry_array_size + block_size - 1) / block_size) + 1) - 1;
+			partition_entries[userdata_index].size = partition_entries[userdata_index].last_lba - partition_entries[userdata_index].first_lba + 1;
+
+			mmc_boot_write_gpt(block_size);
+		}
+	}
+
 	return 0;
 }
 
@@ -331,8 +351,8 @@ static unsigned int mmc_boot_read_gpt(uint32_t block_size)
 
 		for (j = 0; j < part_entry_cnt; j++) {
 			memcpy(&(partition_entries[partition_count].type_guid),
-			       &data[(j * partition_entry_size)],
-			       PARTITION_TYPE_GUID_SIZE);
+				   &data[(j * partition_entry_size)],
+				   GUID_SIZE);
 			if (partition_entries[partition_count].type_guid[0] ==
 			    0x00
 			    && partition_entries[partition_count].
@@ -343,9 +363,9 @@ static unsigned int mmc_boot_read_gpt(uint32_t block_size)
 			memcpy(&
 			       (partition_entries[partition_count].
 				unique_partition_guid),
-			       &data[(j * partition_entry_size) +
-				     UNIQUE_GUID_OFFSET],
-			       UNIQUE_PARTITION_GUID_SIZE);
+				   &data[(j * partition_entry_size) +
+						 UNIQUE_GUID_OFFSET],
+				   GUID_SIZE);
 			partition_entries[partition_count].first_lba =
 			    GET_LLWORD_FROM_BYTE(&data
 						 [(j * partition_entry_size) +
@@ -382,6 +402,85 @@ static unsigned int mmc_boot_read_gpt(uint32_t block_size)
 end:
 	if (data)
 		free(data);
+
+	return ret;
+}
+
+static unsigned int mmc_boot_write_gpt(uint32_t block_size)
+{
+	int ret = 0;
+	uint8_t *buffer = (uint8_t *)memalign(CACHE_LINE, ROUNDUP(block_size, CACHE_LINE));
+	if (!buffer) {
+		dprintf(CRITICAL, "Failed to Allocate memory to read partition table\n");
+		ret = -1;
+		goto end;
+	}
+	memset(buffer, 0, block_size);
+	uint64_t device_density = mmc_get_device_capacity();
+
+	unsigned int partition_entry_array_size = ENTRY_SIZE * partition_count;
+	if (partition_entry_array_size < MIN_PARTITION_ARRAY_SIZE)
+		partition_entry_array_size = MIN_PARTITION_ARRAY_SIZE;
+
+	PUT_LONG(&buffer[0], GPT_SIGNATURE_2);
+	PUT_LONG(&buffer[4], GPT_SIGNATURE_1);
+	PUT_LONG(&buffer[REVISION_OFFSET], 0x10000);
+	PUT_LONG(&buffer[HEADER_SIZE_OFFSET], GPT_HEADER_SIZE);
+	PUT_LONG_LONG(&buffer[PRIMARY_HEADER_OFFSET], ((uint64_t)GPT_LBA));
+	PUT_LONG_LONG(&buffer[BACKUP_HEADER_OFFSET], ((device_density / block_size) - (((partition_entry_array_size + block_size - 1) / block_size) + 1)));
+	PUT_LONG_LONG(&buffer[FIRST_USABLE_LBA_OFFSET], (((partition_entry_array_size + block_size - 1) / block_size) + 1));
+	PUT_LONG_LONG(&buffer[LAST_USABLE_LBA_OFFSET], ((device_density / block_size) - (((partition_entry_array_size + block_size - 1) / block_size) + 1 + 1)));
+	memcpy(&buffer[DISK_GUID_OFFSET], disk_guid, GUID_SIZE);
+	PUT_LONG_LONG(&buffer[PARTITION_ENTRIES_OFFSET], ((uint64_t)GPT_LBA + 1));
+	PUT_LONG(&buffer[PARTITION_COUNT_OFFSET], (ROUNDUP(partition_entry_array_size, block_size) / ENTRY_SIZE));
+	PUT_LONG(&buffer[PENTRY_SIZE_OFFSET], PARTITION_ENTRY_SIZE);
+
+	uint8_t *new_buffer = (uint8_t *)memalign(CACHE_LINE, ROUNDUP(ROUNDUP(partition_entry_array_size, block_size), CACHE_LINE));
+	if (!new_buffer) {
+		dprintf(CRITICAL, "Failed to Allocate memory to read partition table\n");
+		ret = -1;
+		goto end;
+	}
+	memset(new_buffer, 0, ROUNDUP(partition_entry_array_size, block_size));
+
+	for (int i = 0; i < partition_count; i++)
+	{
+		uint8_t *data = &new_buffer[i * PARTITION_ENTRY_SIZE];
+
+		memcpy(&data[TYPE_GUID_OFFSET], &partition_entries[i].type_guid, GUID_SIZE);
+		memcpy(&data[UNIQUE_GUID_OFFSET], &partition_entries[i].unique_partition_guid, GUID_SIZE);
+		PUT_LONG_LONG(&data[FIRST_LBA_OFFSET], partition_entries[i].first_lba);
+		PUT_LONG_LONG(&data[LAST_LBA_OFFSET], partition_entries[i].last_lba);
+		PUT_LONG_LONG(&data[ATTRIBUTE_FLAG_OFFSET], partition_entries[i].attribute_flag);
+		for (int j = 0; j < MAX_GPT_NAME_SIZE; j++)
+			data[PARTITION_NAME_OFFSET + j * 2] = partition_entries[i].name[j];
+	}
+
+	uint32_t crc_val2 = crc32(~0L, new_buffer, ROUNDUP(partition_entry_array_size, block_size)) ^ (~0L);
+	PUT_LONG(&buffer[PARTITION_CRC_OFFSET], crc_val2);
+
+	uint32_t crc_val = crc32(~0L, buffer, GPT_HEADER_SIZE) ^ (~0L);
+	PUT_LONG(&buffer[HEADER_CRC_OFFSET], crc_val);
+
+	ret = mmc_write(GPT_LBA * block_size, block_size, (unsigned int *)buffer);
+	if (ret)
+	{
+		dprintf(CRITICAL, "Failed to write GPT header\n");
+		goto end;
+	}
+
+	ret = mmc_write((GPT_LBA + 1) * block_size, ROUNDUP(partition_entry_array_size, block_size), (unsigned int *)new_buffer);
+	if (ret)
+	{
+		dprintf(CRITICAL, "Failed to write GPT partition entries\n");
+		goto end;
+	}
+
+	return ret;
+
+end:
+	if (buffer)
+		free(buffer);
 
 	return ret;
 }
@@ -1059,6 +1158,8 @@ partition_parse_gpt_header(unsigned char *buffer,
 	}
 	else
 		PUT_LONG(&buffer[HEADER_CRC_OFFSET], crc_val);
+
+	memcpy(disk_guid, &buffer[DISK_GUID_OFFSET], GUID_SIZE);
 
 	current_lba =
 	    GET_LLWORD_FROM_BYTE(&buffer[PRIMARY_HEADER_OFFSET]);

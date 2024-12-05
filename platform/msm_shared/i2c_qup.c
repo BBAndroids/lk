@@ -222,7 +222,9 @@ static int qup_i2c_poll_state(struct qup_i2c_dev *dev, unsigned state)
 {
 	unsigned retries = 0;
 
+#ifdef DEBUG
 	dprintf(INFO, "Polling Status for state:0x%x\n", state);
+#endif
 
 	while (retries != 2000) {
 		unsigned status = readl(dev->qup_base + QUP_STATE);
@@ -447,6 +449,107 @@ static int qup_set_wr_mode(struct qup_i2c_dev *dev, int rem)
 	return ret;
 }
 
+static int qup_i2c_bb_start(struct qup_i2c_dev *dev)
+{
+	int sda = -1, scl = -1;
+
+	if (dev->qup_base == BLSP_QUP_BASE(1, 2))
+	{
+		sda = 10;
+		scl = 11;
+	}
+
+	gpio_set(scl, 2);
+	gpio_set(sda, 2);
+	udelay(10);
+	gpio_set(sda, 0);
+	udelay(10);
+	gpio_set(scl, 0);
+	udelay(10);
+
+	return 0;
+}
+
+static int8_t qup_i2c_bb_wait_ack(struct qup_i2c_dev *dev)
+{
+	int sda = -1, scl = -1;
+
+	if (dev->qup_base == BLSP_QUP_BASE(1, 2))
+	{
+		sda = 10;
+		scl = 11;
+	}
+
+	gpio_tlmm_config(sda, 0, GPIO_INPUT, GPIO_PULL_UP,
+					 GPIO_6MA, GPIO_DISABLE);
+	gpio_set(scl, 2);
+	udelay(10);
+
+
+	for (int i = 0; i < 50; i++)
+	{
+		if (!gpio_get(sda))
+			break;
+		udelay(10);
+	}
+	
+
+	gpio_tlmm_config(sda, 0, GPIO_OUTPUT, GPIO_NO_PULL,
+					 GPIO_6MA, GPIO_DISABLE);
+
+	gpio_set(scl, 0);
+	udelay(10);
+
+	return 0;
+}
+
+static int8_t qup_i2c_bb_write(struct qup_i2c_dev *dev, uint8_t value)
+{
+	int sda = -1, scl = -1;
+
+	if (dev->qup_base == BLSP_QUP_BASE(1, 2))
+	{
+		sda = 10;
+		scl = 11;
+	}
+
+	for (int8_t i = 0; i < 8; i = (i + 1))
+	{
+		if ((value & 0x80) != 0)
+			gpio_set(sda, 2);
+		else
+			gpio_set(sda, 0);
+		udelay(10);
+		gpio_set(scl, 2);
+		udelay(10);
+		gpio_set(scl, 0);
+		value *= 2;
+		udelay(10);
+	}
+
+	return qup_i2c_bb_wait_ack(dev);
+}
+
+static int qup_i2c_bb_end(struct qup_i2c_dev *dev)
+{
+	int sda = -1, scl = -1;
+
+	if (dev->qup_base == BLSP_QUP_BASE(1, 2))
+	{
+		sda = 10;
+		scl = 11;
+	}
+
+	gpio_set(sda, 0);
+	gpio_set(scl, 2);
+	udelay(10);
+	gpio_set(sda, 2);
+	udelay(10);
+	udelay(10);
+
+	return 0;
+}
+
 int qup_i2c_xfer(struct qup_i2c_dev *dev, struct i2c_msg msgs[], int num)
 {
 	int ret;
@@ -455,6 +558,41 @@ int qup_i2c_xfer(struct qup_i2c_dev *dev, struct i2c_msg msgs[], int num)
 
 	if (dev->suspended) {
 		return -EIO;
+	}
+
+	if (msgs->flags & I2C_M_IGNORE_NAK)
+	{
+		int sda = -1, scl = -1;
+
+		if (dev->qup_base == BLSP_QUP_BASE(1, 2)) {
+			sda = 10;
+			scl = 11;
+		}
+
+		if (sda < 0 || scl < 0) {
+			dprintf(INFO, "I2C_M_IGNORE_NAK not supported\n");
+			ret = EIO;
+			goto out_err;
+		}
+
+		gpio_tlmm_config(sda, 0, GPIO_OUTPUT, GPIO_NO_PULL,
+						 GPIO_6MA, GPIO_DISABLE);
+		gpio_tlmm_config(scl, 0, GPIO_OUTPUT, GPIO_NO_PULL,
+						 GPIO_6MA, GPIO_DISABLE);
+
+		qup_i2c_bb_start(dev);
+		qup_i2c_bb_write(dev, msgs->addr << 1);
+		for (int i = 0; i < msgs->len; i++)
+			qup_i2c_bb_write(dev, msgs->buf[i]);
+		qup_i2c_bb_end(dev);
+
+		gpio_tlmm_config(sda, 3, GPIO_OUTPUT, GPIO_NO_PULL,
+						 GPIO_6MA, GPIO_DISABLE);
+		gpio_tlmm_config(scl, 3, GPIO_OUTPUT, GPIO_NO_PULL,
+						 GPIO_6MA, GPIO_DISABLE);
+
+		ret = 0;
+		goto out_err;
 	}
 
 	/* Set the GSBIn_QUP_APPS_CLK to 24MHz, then below figure out what speed to
@@ -500,10 +638,12 @@ int qup_i2c_xfer(struct qup_i2c_dev *dev, struct i2c_msg msgs[], int num)
 		dev->out_fifo_sz =
 		    dev->out_blk_sz * (2 << ((fifo_reg & 0x1C) >> 2));
 		dev->in_fifo_sz =
-		    dev->in_blk_sz * (2 << ((fifo_reg & 0x380) >> 7));
+			dev->in_blk_sz * (2 << ((fifo_reg & 0x380) >> 7));
+#ifdef DEBUG
 		dprintf(INFO, "QUP IN:bl:%d, ff:%d, OUT:bl:%d, ff:%d\n",
 			dev->in_blk_sz, dev->in_fifo_sz, dev->out_blk_sz,
 			dev->out_fifo_sz);
+#endif
 	}
 
 	unmask_interrupt(dev->qup_irq);
@@ -613,8 +753,10 @@ int qup_i2c_xfer(struct qup_i2c_dev *dev, struct i2c_msg msgs[], int num)
 				ret = err;
 				goto out_err;
 			}
+#ifdef DEBUG
 			dprintf(INFO, "idx:%d, rem:%d, num:%d, mode:%d\n",
 				idx, rem, num, dev->mode);
+#endif
 
 			qup_print_status(dev);
 			if (dev->err) {

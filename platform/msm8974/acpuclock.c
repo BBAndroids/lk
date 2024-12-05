@@ -199,18 +199,17 @@ void clock_config_uart_dm(uint8_t id)
 {
 	int ret;
 
-
-    ret = clk_get_set_enable("uart2_iface_clk", 0, 1);
-    if(ret)
+	ret = clk_get_set_enable("blsp1_ahb_clk", 0, 1);
+	if(ret)
 	{
-		dprintf(CRITICAL, "failed to set uart2_iface_clk ret = %d\n", ret);
+		dprintf(CRITICAL, "failed to set blsp1_ahb_clk ret = %d\n", ret);
 		ASSERT(0);
 	}
 
-    ret = clk_get_set_enable("uart2_core_clk", 7372800, 1);
+	ret = clk_get_set_enable("blsp1_uart2_apps_clk", 7372800, 1);
 	if(ret)
 	{
-		dprintf(CRITICAL, "failed to set uart1_core_clk ret = %d\n", ret);
+		dprintf(CRITICAL, "failed to set blsp1_uart2_apps_clk ret = %d\n", ret);
 		ASSERT(0);
 	}
 }

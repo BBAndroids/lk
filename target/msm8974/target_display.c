@@ -36,6 +36,8 @@
 #include <pm8x41_wled.h>
 #include <board.h>
 #include <mdp5.h>
+#include <i2c_qup.h>
+#include <blsp_qup.h>
 #include <platform/gpio.h>
 #include <platform/clock.h>
 #include <platform/iomap.h>
@@ -183,6 +185,263 @@ static int msm8974_pwm_backlight_ctrl(int gpio_num, int lpg_chan, int enable)
 	return NO_ERROR;
 }
 
+static int stled110_write_byte(struct qup_i2c_dev *dev, uint8_t reg, uint8_t value)
+{
+	uint8_t send_buf[2] = { reg, value };
+	struct i2c_msg msg =
+	{
+		.len = sizeof(send_buf),
+		.buf = send_buf,
+		.addr = 0x31,
+		.flags = I2C_M_WR
+	};
+
+	return qup_i2c_xfer(dev, &msg, 1) != 1;
+}
+
+static uint8_t stled110_read_byte(struct qup_i2c_dev *dev, uint8_t reg)
+{
+	uint8_t send_buf[1] = { reg };
+	uint8_t recv_buf[1] = { 0 };
+	struct i2c_msg msg[] =
+	{
+		{
+			.len = sizeof(send_buf),
+			.buf = send_buf,
+			.addr = 0x31,
+			.flags = I2C_M_WR
+		},
+		{
+			.len = sizeof(recv_buf),
+			.buf = recv_buf,
+			.addr = 0x31,
+			.flags = I2C_M_RD
+		}
+	};
+
+	qup_i2c_xfer(dev, msg, 2);
+
+	return *recv_buf;
+}
+
+static int stled110_power_on(struct qup_i2c_dev *dev)
+{
+	if (stled110_write_byte(dev, 0x02, 0x7F))
+	{
+		dprintf(CRITICAL, "Failed to i2c write reg 0x02\n");
+		return ERR_IO;
+	}
+
+	if (stled110_write_byte(dev, 0x03, 0x80))
+	{
+		dprintf(CRITICAL, "Failed to i2c write reg 0x03\n");
+		return ERR_IO;
+	}
+
+	if (stled110_write_byte(dev, 0x08, 0x00))
+	{
+		dprintf(CRITICAL, "Failed to i2c write reg 0x08\n");
+		return ERR_IO;
+	}
+
+	if (stled110_write_byte(dev, 0x1b, 0x01))
+	{
+		dprintf(CRITICAL, "Failed to i2c write reg 0x1b\n");
+		return ERR_IO;
+	}
+
+	// Enable cabc
+	if (stled110_write_byte(dev, 0x01, 0x31))
+	{
+		dprintf(CRITICAL, "Failed to i2c write reg 0x01\n");
+		return ERR_IO;
+	}
+
+	if (stled110_write_byte(dev, 0x17, 0x10))
+	{
+		dprintf(CRITICAL, "Failed to i2c write reg 0x17\n");
+		return ERR_IO;
+	}
+
+	return NO_ERROR;
+}
+
+static int stled110_power_off(struct qup_i2c_dev *dev)
+{
+	uint8_t R01 = stled110_read_byte(dev, 0x01);
+	if (R01 < 0)
+	{
+		dprintf(CRITICAL, "Failed to read register R01, use powered-on default (0x2F/0x27)\n");
+		R01 = 0x31;
+	}
+
+	R01 &= ~0x20;
+	if (stled110_write_byte(dev, 0x01, R01))
+	{
+		dprintf(CRITICAL, "Failed to i2c write reg 0x01\n");
+		return ERR_IO;
+	}
+
+	if ((R01 & 4) != 0) // Charge pump
+	{
+		R01 &= ~4;
+		if (stled110_write_byte(dev, 0x01, R01))
+		{
+			dprintf(CRITICAL, "Failed to i2c write reg 0x01\n");
+			return ERR_IO;
+		}
+	}
+
+	udelay(1000);
+
+	if ((R01 & 2) != 0)
+	{
+		R01 &= ~2;
+		if (stled110_write_byte(dev, 0x01, R01))
+		{
+			dprintf(CRITICAL, "Failed to i2c write reg 0x01\n");
+			return ERR_IO;
+		}
+	}
+
+	if ((R01 & 1) != 0)
+	{
+		udelay(100000);
+		R01 &= ~1;
+		if (stled110_write_byte(dev, 0x01, R01))
+		{
+			dprintf(CRITICAL, "Failed to i2c write reg 0x01\n");
+			return ERR_IO;
+		}
+	}
+
+	return NO_ERROR;
+}
+
+static int msm8974_stled110_backlight_ctrl(uint8_t enable, int version)
+{
+	struct qup_i2c_dev *dev;
+	int ldo_en = 0;
+	int bl_en = 9;
+
+	if (strcmp(bbry_get_variant(), "wichita") == 0) {
+		ldo_en = 94;
+		bl_en = 109;
+	}
+
+	dprintf(CRITICAL, "Samanta version: %d\n", version);
+
+	dev = qup_blsp_i2c_init(BLSP_ID_1, QUP_ID_2, 100000, 19200000);
+	if (!dev)
+	{
+		dprintf(CRITICAL, "Failed initializing I2c\n");
+		return ERR_IO;
+	}
+
+	if (enable)
+	{
+		gpio_tlmm_config(ldo_en, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA, GPIO_DISABLE); // ldo en
+		gpio_tlmm_config(bl_en, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA, GPIO_DISABLE);	// bl en
+
+		gpio_set(ldo_en, 0); // ldo en
+		gpio_set(bl_en, 0);	 // bl en
+
+		udelay(1000);
+
+		gpio_set(ldo_en, 2); // ldo en
+
+		udelay(1000);
+
+		if (version == 1)
+		{
+			uint8_t cmd_buf[] = {0x40, 0xAA};
+			struct i2c_msg cmd = {
+				.len = sizeof(cmd_buf),
+				.buf = cmd_buf,
+				.addr = 0x31,
+				.flags = I2C_M_WR | I2C_M_IGNORE_NAK
+			};
+
+			qup_i2c_xfer(dev, &cmd, 1);
+
+			gpio_set(bl_en, 2); // bl en
+
+			udelay(10000);
+
+			if (stled110_write_byte(dev, 0x47, 1)) {
+				dprintf(CRITICAL, "Failed to i2c write reg 0x47\n");
+				return ERR_IO;
+			}
+
+			if (stled110_write_byte(dev, 0x48, 0xFF)) {
+				dprintf(CRITICAL, "Failed to i2c write reg 0x48\n");
+				return ERR_IO;
+			}
+
+			if (stled110_write_byte(dev, 0x33, 0x12)) {
+				dprintf(CRITICAL, "Failed to i2c write reg 0x33\n");
+				return ERR_IO;
+			}
+		}
+		else
+		{
+			uint8_t cmd_buf[] = {0x48, 0x1F};
+			struct i2c_msg cmd =
+			{
+				.len = sizeof(cmd_buf),
+				.buf = cmd_buf,
+				.addr = 0x31,
+				.flags = I2C_M_WR | I2C_M_IGNORE_NAK
+			};
+
+			qup_i2c_xfer(dev, &cmd, 1);
+
+			gpio_set(bl_en, 2); // bl en
+
+			udelay(10000);
+		}
+
+		stled110_power_on(dev);
+
+		for (int retry = 0; retry < 100; retry++)
+		{
+			uint8_t send_buf[5] = {0x0F, 0x00, 0xFF, 0x0F, 0x01};
+			struct i2c_msg msg =
+			{
+				.len = sizeof(send_buf),
+				.buf = send_buf,
+				.addr = 0x31,
+				.flags = I2C_M_WR
+			};
+
+			qup_i2c_xfer(dev, &msg, 1) != 1;
+
+			if (stled110_read_byte(dev, 0x12) == 0)
+				break;
+
+			uint8_t err = stled110_read_byte(dev, 0x04);
+			if (err != 0)
+			{
+				dprintf(CRITICAL, "stled110 error detected! #2 %02x\n", err);
+				stled110_power_off(dev);
+				stled110_power_on(dev);
+				continue;
+			}
+
+			dprintf(CRITICAL, "Brightness not set, retry...\n");
+		}
+	}
+	else
+	{
+		stled110_power_off(dev);
+
+		gpio_set(bl_en, 0);
+		gpio_set(ldo_en, 0);
+	}
+
+	return NO_ERROR;
+}
+
 int target_backlight_ctrl(struct backlight *bl, uint8_t enable)
 {
 	uint32_t ret = NO_ERROR;
@@ -193,18 +452,24 @@ int target_backlight_ctrl(struct backlight *bl, uint8_t enable)
 	}
 
 	switch (bl->bl_interface_type) {
-		case BL_WLED:
-			ret = msm8974_wled_backlight_ctrl(enable);
-			break;
-		case BL_PWM:
-			ret = msm8974_pwm_backlight_ctrl(pwm_gpio.pin_id,
-							PWM_BL_LPG_CHAN_ID,
-							enable);
-			break;
-		default:
-			dprintf(CRITICAL, "backlight type:%d not supported\n",
-							bl->bl_interface_type);
-			return ERR_NOT_SUPPORTED;
+	case BL_WLED:
+		ret = msm8974_wled_backlight_ctrl(enable);
+		break;
+	case BL_PWM:
+		ret = msm8974_pwm_backlight_ctrl(pwm_gpio.pin_id,
+						PWM_BL_LPG_CHAN_ID,
+						enable);
+		break;
+	case BL_SAMANTA_V1:
+		ret = msm8974_stled110_backlight_ctrl(enable, 1);
+		break;
+	case BL_SAMANTA_V2:
+		ret = msm8974_stled110_backlight_ctrl(enable, 2);
+		break;
+	default:
+		dprintf(CRITICAL, "backlight type:%d not supported\n",
+						bl->bl_interface_type);
+		return ERR_NOT_SUPPORTED;
 	}
 
 	return ret;
@@ -251,9 +516,9 @@ int target_ldo_ctrl(uint8_t enable)
 {
 	if (enable) {
 		if (strcmp(bbry_get_product(), "oslo") == 0)
-			gpio_tlmm_config(46, 0, 0, 0, 0, 0);
+			gpio_tlmm_config(46, 0, GPIO_INPUT, GPIO_NO_PULL, GPIO_2MA, GPIO_ENABLE);
 
-		gpio_tlmm_config(49, 0, 1, 0, 0, 1);
+		gpio_tlmm_config(49, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA, GPIO_DISABLE);
 		gpio_set(49, 0);
 		mdelay(1);
 	} else {
@@ -284,7 +549,7 @@ int target_ldo_ctrl(uint8_t enable)
 
 	if (enable) {
 		udelay(6);
-		gpio_tlmm_config(8, 0, 1, 0, 0, 1);
+		gpio_tlmm_config(8, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA, GPIO_DISABLE);
 		gpio_set(8, 2);
 		udelay(200);
 		gpio_set(49, 2);

@@ -251,6 +251,24 @@ static uint32_t mmc_decode_and_save_csd(struct mmc_card *card)
 	dprintf(SPEW, "write_blk_partial: %u\n", mmc_csd.write_blk_partial);
 	dprintf(SPEW, "Card Capacity: %llu Bytes\n", card->capacity);
 
+	uint8_t boot_wp_status = card->ext_csd[MMC_BOOT_WP_STATUS];
+	if ((boot_wp_status & 3) == 0)
+		dprintf(SPEW, "boot0 isn't write protected\n");
+	if ((boot_wp_status & 3) == 1)
+		dprintf(SPEW, "boot0 power on write protected\n");
+	if ((boot_wp_status & 3) == 2)
+		dprintf(SPEW, "boot0 permanently write protected\n");
+	if ((boot_wp_status & 3) == 3)
+		dprintf(SPEW, "boot0 wp wtf\n");
+	if (((boot_wp_status >> 2) & 3) == 0)
+		dprintf(SPEW, "boot1 isn't write protected\n");
+	if (((boot_wp_status >> 2) & 3) == 1)
+		dprintf(SPEW, "boot1 power on write protected\n");
+	if (((boot_wp_status >> 2) & 3) == 2)
+		dprintf(SPEW, "boot1 permanently write protected\n");
+	if (((boot_wp_status >> 2) & 3) == 3)
+		dprintf(SPEW, "boot1 wp wtf\n");
+
 	return 0;
 }
 

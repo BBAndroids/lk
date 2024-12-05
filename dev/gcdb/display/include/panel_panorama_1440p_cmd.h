@@ -203,8 +203,16 @@ static struct panel_reset_sequence panorama_1440p_cmd_panel_reset_seq = {
 /* Backlight Settings                                                        */
 /*---------------------------------------------------------------------------*/
 
-static struct backlight panorama_1440p_cmd_backlight = {
-  1, 1, 4095, 100, 1, "PMIC_8941"
+static struct backlight panorama_1440p_cmd_backlight_wled = {
+  BL_WLED, 1, 4095, 100, 1, "PMIC_8941"
+};
+
+static struct backlight panorama_1440p_cmd_backlight_samanta_v1 = {
+  BL_SAMANTA_V1, 1, 4095, 100, 1, "SAMANTA_V1"
+};
+
+static struct backlight panorama_1440p_cmd_backlight_samanta_v2 = {
+  BL_SAMANTA_V2, 1, 4095, 1, 1, "SAMANTA_V2"
 };
 #define PANORAMA_1440P_CMD_SIGNATURE 0x210000
 

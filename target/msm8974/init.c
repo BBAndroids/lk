@@ -56,7 +56,6 @@
 #define VIBRATE_TIME 250
 #endif
 
-extern  bool target_use_signed_kernel(void);
 static void set_sdc_power_ctrl();
 
 static unsigned int target_id;
@@ -164,37 +163,6 @@ static void target_keystatus()
 
 	if(target_volume_up())
 		keys_post_event(KEY_VOLUMEUP, 1);
-}
-
-/* Set up params for h/w CE. */
-void target_crypto_init_params()
-{
-	struct crypto_init_params ce_params;
-
-	/* Set up base addresses and instance. */
-	ce_params.crypto_instance  = CE_INSTANCE;
-	ce_params.crypto_base      = MSM_CE2_BASE;
-	ce_params.bam_base         = MSM_CE2_BAM_BASE;
-
-	/* Set up BAM config. */
-	ce_params.bam_ee               = CE_EE;
-	ce_params.pipes.read_pipe      = CE_READ_PIPE;
-	ce_params.pipes.write_pipe     = CE_WRITE_PIPE;
-	ce_params.pipes.read_pipe_grp  = CE_READ_PIPE_LOCK_GRP;
-	ce_params.pipes.write_pipe_grp = CE_WRITE_PIPE_LOCK_GRP;
-
-	/* Assign buffer sizes. */
-	ce_params.num_ce           = CE_ARRAY_SIZE;
-	ce_params.read_fifo_size   = CE_FIFO_SIZE;
-	ce_params.write_fifo_size  = CE_FIFO_SIZE;
-
-	/* BAM is initialized by TZ for this platform.
-	 * Do not do it again as the initialization address space
-	 * is locked.
-	 */
-	ce_params.do_bam_init      = 0;
-
-	crypto_init_params(&ce_params);
 }
 
 crypto_engine_type board_ce_type(void)
@@ -343,9 +311,6 @@ void target_init(void)
 
 	target_keystatus();
 
-	if (target_use_signed_kernel())
-		target_crypto_init_params();
-
 #if PON_VIB_SUPPORT
 	vib_timed_turn_on(VIBRATE_TIME);
 #endif
@@ -411,15 +376,15 @@ static void ssd_load_keystore_from_emmc()
 void analogix_usb_passthrough()
 {
 	// analogix,v10-ctrl
-	gpio_tlmm_config(53, 0, 1, 0, 0, 0);
+	gpio_tlmm_config(53, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA, GPIO_ENABLE);
 	gpio_set(53, 2);
 
 	// analogix,reset
-	gpio_tlmm_config(55, 0, 1, 0, 0, 0);
+	gpio_tlmm_config(55, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA, GPIO_ENABLE);
 	gpio_set(55, 2);
 
 	// analogix,p-dwn
-	gpio_tlmm_config(16, 0, 1, 0, 0, 0);
+	gpio_tlmm_config(16, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA, GPIO_ENABLE);
 	gpio_set(16, 2);
 }
 
@@ -765,7 +730,7 @@ static void set_sdc_power_ctrl()
 
 int emmc_recovery_init(void)
 {
-	return _emmc_recovery_init();
+	return 0;
 }
 
 void target_usb_stop(void)

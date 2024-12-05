@@ -11,6 +11,7 @@ int bbry_get_rev();
 int bbry_get_hwid();
 const char *bbry_get_product();
 const char *bbry_get_variant();
+const char *bbry_get_device_variant();
 
 int is_backup_bootchain();
 

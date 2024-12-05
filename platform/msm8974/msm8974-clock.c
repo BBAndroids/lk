@@ -313,6 +313,17 @@ static struct branch_clk gcc_blsp1_uart2_apps_clk =
 	},
 };
 
+static struct branch_clk gcc_blsp1_qup3_i2c_apps_clk =
+{
+	.cbcr_reg = BLSP1_QUP3_I2C_APPS_CBCR,
+	.parent   = &cxo_clk_src.c,
+
+	.c = {
+		.dbg_name = "gcc_blsp1_qup3_i2c_apps_clk",
+		.ops      = &clk_ops_branch,
+	},
+};
+
 static struct vote_clk gcc_blsp1_ahb_clk = {
 	.cbcr_reg     = (uint32_t *) BLSP1_AHB_CBCR,
 	.vote_reg     = (uint32_t *) APCS_CLOCK_BRANCH_ENA_VOTE,
@@ -823,9 +834,6 @@ static struct clk_lookup msm_clocks_8974[] =
 	CLK_LOOKUP("sdc2_iface_clk", gcc_sdcc2_ahb_clk.c),
 	CLK_LOOKUP("sdc2_core_clk",  gcc_sdcc2_apps_clk.c),
 
-	CLK_LOOKUP("uart2_iface_clk", gcc_blsp1_ahb_clk.c),
-	CLK_LOOKUP("uart2_core_clk",  gcc_blsp1_uart2_apps_clk.c),
-
 	CLK_LOOKUP("usb_iface_clk",  gcc_usb_hs_ahb_clk.c),
 	CLK_LOOKUP("usb_core_clk",   gcc_usb_hs_system_clk.c),
 
@@ -839,6 +847,9 @@ static struct clk_lookup msm_clocks_8974[] =
 	CLK_LOOKUP("ce1_core_clk", gcc_ce1_clk.c),
 	CLK_LOOKUP("ce1_src_clk",  ce1_clk_src.c),
 
+	CLK_LOOKUP("blsp1_ahb_clk",           gcc_blsp1_ahb_clk.c),
+	CLK_LOOKUP("blsp1_uart2_apps_clk",    gcc_blsp1_uart2_apps_clk.c),
+	CLK_LOOKUP("blsp1_qup3_i2c_apps_clk",    gcc_blsp1_qup3_i2c_apps_clk.c),
 
 	CLK_LOOKUP("blsp2_ahb_clk",           gcc_blsp2_ahb_clk.c),
 	CLK_LOOKUP("blsp2_qup5_i2c_apps_clk", gcc_blsp2_qup5_i2c_apps_clk.c),

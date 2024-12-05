@@ -52,6 +52,11 @@ void gpio_set(uint32_t gpio, uint32_t dir)
 	return;
 }
 
+uint32_t gpio_get(uint32_t gpio)
+{
+	return readl((unsigned int *)GPIO_IN_OUT_ADDR(gpio));
+}
+
 /* Configure gpio for blsp uart 2 */
 void gpio_config_uart_dm(uint8_t id)
 {
@@ -75,15 +80,21 @@ void gpio_config_blsp_i2c(uint8_t blsp_id, uint8_t qup_id)
 						GPIO_6MA, GPIO_DISABLE);
 		break;
 		default:
-			dprintf(CRITICAL, "Configure gpios for QUP instance: %u\n",
+			dprintf(CRITICAL, "Configure gpios for BLSP2 QUP instance: %u\n",
 					  qup_id);
 			ASSERT(0);
 		};
 	}
 	else if (blsp_id == BLSP_ID_1) {
 		switch (qup_id) {
+		case QUP_ID_2:
+			gpio_tlmm_config(10, 3, GPIO_OUTPUT, GPIO_NO_PULL,
+						GPIO_6MA, GPIO_DISABLE);
+			gpio_tlmm_config(11, 3, GPIO_OUTPUT, GPIO_NO_PULL,
+						GPIO_6MA, GPIO_DISABLE);
+		break;
 		default:
-			dprintf(CRITICAL, "Configure gpios for QUP instance: %u\n",
+			dprintf(CRITICAL, "Configure gpios for BLSP1 QUP instance: %u\n",
 					   qup_id);
 			ASSERT(0);
 		};

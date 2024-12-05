@@ -1,0 +1,23 @@
+{
+	"files.associations": {
+		"panel_panorama_1440p_cmd.h": "c",
+		"display.h": "c",
+		"optional": "c",
+		"istream": "c",
+		"ostream": "c",
+		"ratio": "c",
+		"system_error": "c",
+		"array": "c",
+		"functional": "c",
+		"tuple": "c",
+		"type_traits": "c",
+		"utility": "c",
+		"hash_map": "c",
+		"string_view": "c",
+		"initializer_list": "c",
+		"ranges": "c",
+		"span": "c",
+		"chrono": "c",
+		"string": "c"
+	}
+}
