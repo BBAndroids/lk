@@ -795,6 +795,7 @@ static int update_dtb_entry_node(struct dt_entry_node *dt_list, uint32_t dtb_inf
 static struct dt_entry *platform_dt_match_best(struct dt_entry_node *dt_list)
 {
 	struct dt_entry_node *dt_node_tmp1 = NULL;
+	struct dt_entry *best_entry = NULL;
 
 	/* check Foundry id
 	* the foundry id must exact match board founddry id, this is compatibility check,
@@ -835,20 +836,17 @@ static struct dt_entry *platform_dt_match_best(struct dt_entry_node *dt_list)
 		return NULL;
 
 	list_for_every_entry(&dt_list->node, dt_node_tmp1, dt_node, node) {
-		if (dt_node_tmp1->dt_entry_m && dt_node_tmp1->dt_entry_m->board_hw_subtype == board_hardware_subtype())
-			return dt_node_tmp1->dt_entry_m;
-	}
-
-	list_for_every_entry(&dt_list->node, dt_node_tmp1, dt_node, node) {
 		if (!dt_node_tmp1) {
 			dprintf(CRITICAL, "ERROR: Couldn't find the suitable DTB!\n");
 			return NULL;
 		}
-		if (dt_node_tmp1->dt_entry_m)
-			return dt_node_tmp1->dt_entry_m;
+		if (dt_node_tmp1->dt_entry_m && dt_node_tmp1->dt_entry_m->board_hw_subtype <= board_hardware_subtype()) {
+			if (!best_entry || board_hardware_subtype() - dt_node_tmp1->dt_entry_m->board_hw_subtype < board_hardware_subtype() - best_entry->board_hw_subtype)
+					best_entry = dt_node_tmp1->dt_entry_m;
+		}
 	}
 
-	return NULL;
+	return best_entry;
 }
 
 /* Function to obtain the index information for the correct device tree
