@@ -149,6 +149,11 @@ int pm8x41_gpio_set(uint8_t gpio, uint8_t value)
 	return 0;
 }
 
+void pm8x41_wd_reset_pet()
+{
+	REG_WRITE(PMIC_WD_RESET_PET, 0x1);
+}
+
 /* Prepare PON RESIN S2 reset (bite) */
 void pm8x41_resin_s2_reset_enable()
 {
@@ -424,8 +429,41 @@ void pm8x41_clear_pmic_watchdog(void)
 	pm8x41_reg_write(PMIC_WD_RESET_S2_CTL2, 0x0);
 }
 
+int pm8xxx_is_charger_present(void)
+{
+	return ((pm8x41_reg_read(PM8XXX_USB_CHG_PTH_STS) >> 7) & 1) | ((pm8x41_reg_read(PM8XXX_DC_CHG_PTH_STS) >> 7) & 1);
+}
+
+int pm8xxx_is_charging(void)
+{
+	return (pm8x41_reg_read(PM8XXX_CHG_CTRL) >> 7) & 1;
+}
+
+void pm8xxx_enable_charging(void)
+{
+	pm8x41_reg_write(PM8XXX_BOOT_DONE, pm8x41_reg_read(PM8XXX_BOOT_DONE) | 0x80);
+	pm8x41_reg_write(PM8XXX_CHG_CTRL, pm8x41_reg_read(PM8XXX_CHG_CTRL) | 0x80);
+}
+
+void pm8xxx_disable_charging(void)
+{
+	pm8x41_reg_write(PM8XXX_CHG_CTRL, pm8x41_reg_read(PM8XXX_CHG_CTRL) & ~0x80);
+}
+
+void pm8xxx_set_max_charge_amperage(int rate)
+{
+	if (rate < 200 || rate > 3000) {
+		dprintf(CRITICAL, "invalid rate\n", __func__);
+	}
+
+	pm8x41_reg_write(PM8XXX_IBAT_MAX, (pm8x41_reg_read(PM8XXX_IBAT_MAX) & (~0x3F)) | ((rate + 25) / 50));
+	pm8x41_reg_write(PM8XXX_IUSB_MAX, (pm8x41_reg_read(PM8XXX_IUSB_MAX) & (~0x1F)) | (rate / 100));
+	pm8x41_reg_write(PM8XXX_IUSB_MAX_EN, pm8x41_reg_read(PM8XXX_IUSB_MAX_EN) | 0x80);
+	pm8x41_reg_write(PM8XXX_FLCB_IUSB_MAX_LIM, pm8x41_reg_read(PM8XXX_FLCB_IUSB_MAX_LIM) | 0x80);
+}
+
 /* API to check for borken battery */
-int pm8xxx_is_battery_broken()
+int pm8xxx_is_battery_broken(void)
 {
 	uint8_t trkl_default = 0;
 	uint8_t vbat_det_default = 0;

@@ -40,6 +40,7 @@ struct device_info
 {
 	unsigned char magic[DEVICE_MAGIC_SIZE];
 	bool charger_screen_enabled;
+	bool jack_uart_enabled;
 	char display_panel[MAX_PANEL_ID_LEN];
 };
 

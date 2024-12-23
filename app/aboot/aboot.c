@@ -140,7 +140,7 @@ static const char *baseband_dsda2   = " androidboot.baseband=dsda2";
 static const char *baseband_sglte2  = " androidboot.baseband=sglte2";
 static const char *warmboot_cmdline = " qpnp-power-on.warm_boot=1";
 #if WITH_DEBUG_UART
-static const char *uart_cmdline = " console=ttyHSL0,115200,n8 earlyprintk androidboot.console_en=1";
+static const char *uart_cmdline = " console=ttyHSL0,115200,n8 earlyprintk";
 #endif
 static const char *bbry_hwid = " androidboot.binfo.hwid=";
 static const char *bbry_rev = " androidboot.binfo.rev=";
@@ -365,8 +365,10 @@ unsigned char *update_cmdline(const char * cmdline)
 	}
 
 #if WITH_DEBUG_UART
-	cmdline_len += strlen(uart_cmdline);
+	if (device.jack_uart_enabled)
+		cmdline_len += strlen(uart_cmdline);
 #endif
+
 	char *product = bbry_get_product();
 	char *variant = bbry_get_variant();
 	char *backup_bc_ver = bbry_hwi_get_entry("backup_bc_ver", 0);
@@ -554,9 +556,11 @@ unsigned char *update_cmdline(const char * cmdline)
 		}
 
 #if WITH_DEBUG_UART
-		if (have_cmdline) --dst;
-		src = uart_cmdline;
-		while ((*dst++ = *src++));
+		if (device.jack_uart_enabled) {
+			if (have_cmdline) --dst;
+			src = uart_cmdline;
+			while ((*dst++ = *src++));
+		}
 #endif
 
 		if (have_cmdline) --dst;
@@ -781,6 +785,9 @@ void boot_linux(void *kernel, unsigned *tags,
 
 	dprintf(INFO, "booting linux @ %p, ramdisk @ %p (%d), tags/device tree @ %p\n",
 		entry, ramdisk, ramdisk_size, tags_phys);
+
+	if (!device.jack_uart_enabled)
+		bbry_uart_workaround(0);
 
 	enter_critical_section();
 
@@ -1740,6 +1747,22 @@ void cmd_oem_disable_charger_screen(const char *arg, void *data, unsigned size)
 	fastboot_okay("");
 }
 
+void cmd_oem_enable_jack_uart(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Enabling jack uart\n");
+	device.jack_uart_enabled = 1;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
+void cmd_oem_disable_jack_uart(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Disabling jack uart\n");
+	device.jack_uart_enabled = 0;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
 void cmd_oem_select_display_panel(const char *arg, void *data, unsigned size)
 {
 	dprintf(INFO, "Selecting display panel %s\n", arg);
@@ -1758,6 +1781,11 @@ void cmd_oem_devinfo(const char *arg, void *data, unsigned sz)
 	snprintf(response, sizeof(response), "\tCharger screen enabled: %s", (device.charger_screen_enabled ? "true" : "false"));
 	fastboot_info(response);
 	snprintf(response, sizeof(response), "\tDisplay panel: %s", (device.display_panel));
+	fastboot_info(response);
+	unsigned int battv = pm8x41_get_batt_voltage();
+	snprintf(response, sizeof(response), "\tBattery voltage: %d.%dv", battv / 1000000, battv % 1000000);
+	fastboot_info(response);
+	snprintf(response, sizeof(response), "\tCharging: %s", (pm8xxx_is_charging() ? "true" : "false"));
 	fastboot_info(response);
 	fastboot_okay("");
 }
@@ -1995,6 +2023,8 @@ void aboot_fastboot_register_commands(void)
 		{"oem enable-charger-screen", cmd_oem_enable_charger_screen},
 		{"oem disable-charger-screen", cmd_oem_disable_charger_screen},
 		{"oem select-display-panel", cmd_oem_select_display_panel},
+		{"oem enable-jack-uart", cmd_oem_enable_jack_uart},
+		{"oem disable-jack-uart", cmd_oem_disable_jack_uart},
 	};
 
 	int fastboot_cmds_count = sizeof(cmd_list)/sizeof(cmd_list[0]);
@@ -2062,9 +2092,6 @@ void aboot_init(const struct app_descriptor *app)
 	unsigned reboot_mode = 0;
 	bool boot_into_fastboot = false;
 
-	pm8x41_led_set_color(0x1E, 0, 0);
-	pm8x41_led_enable(1);
-
 	/* Setup page size information for nv storage */
 	page_size = mmc_page_size();
 	page_mask = page_size - 1;
@@ -2072,6 +2099,29 @@ void aboot_init(const struct app_descriptor *app)
 	ASSERT((MEMBASE + MEMSIZE) > MEMBASE);
 
 	read_device_info(&device);
+
+	pm8x41_led_init();
+
+	if (pm8x41_get_batt_voltage() < 3400000)
+	{
+		pm8x41_led_enable(1);
+		pm8xxx_enable_charging();
+		while (pm8x41_get_batt_voltage() < 3400000)
+		{
+			if (!pm8xxx_is_charger_present())
+				shutdown_device();
+
+			pm8x41_led_set_color(0x80, 0, 0);
+			thread_sleep(1000);
+
+			pm8x41_led_set_color(0x0, 0x80, 0);
+			thread_sleep(1000);
+
+			pm8x41_wd_reset_pet();
+		}
+		pm8xxx_disable_charging();
+		pm8x41_led_enable(0);
+	}
 
 	/* Display splash screen if enabled */
 #if DISPLAY_SPLASH_SCREEN
@@ -2122,8 +2172,8 @@ void aboot_init(const struct app_descriptor *app)
 	} else if(reboot_mode == FASTBOOT_MODE) {
 		boot_into_fastboot = true;
 	}
-	
-	pm8x41_led_init();
+
+	pm8x41_led_enable(1);
 	if (is_backup_bootchain())
 	{
 		dprintf(ALWAYS, "Backup bootchain\n");

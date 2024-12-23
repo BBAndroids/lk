@@ -58,7 +58,6 @@
 
 static void set_sdc_power_ctrl();
 
-static unsigned int target_id;
 static uint32_t pmic_ver;
 
 #if MMC_SDHCI_SUPPORT
@@ -332,7 +331,7 @@ void target_init(void)
 
 unsigned board_machtype(void)
 {
-	return target_id;
+	return 0;
 }
 
 /* Do any target specific intialization needed before entering fastboot mode */
