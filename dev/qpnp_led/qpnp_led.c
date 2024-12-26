@@ -74,8 +74,6 @@ static void qpnp_led_config(uint16_t lpg_base, uint8_t value)
 
 void qpnp_led_init(uint16_t led_base_addr, uint16_t red_lpg_base_addr, uint16_t green_lpg_base_addr, uint16_t blue_lpg_base_addr)
 {
-	int rc;
-
 	led.base = led_base_addr;
 	led.red_lpg_base = red_lpg_base_addr;
 	led.green_lpg_base = green_lpg_base_addr;
