@@ -24,6 +24,8 @@ MODULES += \
 	dev/pmic/pm8x41 \
 	dev/gcdb/display \
 	dev/pmic/pmi8994 \
+	dev/vib \
+	dev/qpnp_led \
     lib/ptable \
     lib/libfdt
 

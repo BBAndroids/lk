@@ -77,25 +77,11 @@ struct pages_action {
 	keys_action_func enter_action_func;
 };
 
-static uint32_t verify_index_action[] = {
-		[0] = POWEROFF,
-		[1] = RESTART,
-		[2] = RECOVER,
-		[3] = FASTBOOT,
-		[4] = BACK,
-};
-
 static uint32_t fastboot_index_action[] = {
-		[0] = RESTART,
+		[0] = CONTINUE,
 		[1] = FASTBOOT,
 		[2] = RECOVER,
 		[3] = POWEROFF,
-		[4] = FFBM,
-};
-
-static uint32_t unlock_index_action[] = {
-		[0] = RECOVER,
-		[1] = RESTART,
 };
 
 static int is_key_pressed(int keys_type)
@@ -114,26 +100,16 @@ static int is_key_pressed(int keys_type)
 
 static void update_device_status(struct select_msg_info* msg_info, int reason)
 {
-	char ffbm_page_buffer[FFBM_MODE_BUF_SIZE];
 	fbcon_clear();
 	switch (reason) {
 		case RECOVER:
-			if (msg_info->info.msg_type == DISPLAY_MENU_UNLOCK) {
-				set_device_unlock_value(UNLOCK, TRUE);
-			} else if (msg_info->info.msg_type == DISPLAY_MENU_UNLOCK_CRITICAL) {
-				set_device_unlock_value(UNLOCK_CRITICAL, TRUE);
-			}
+			//reboot_device(RECOVERY_MODE);
+			display_image_on_screen();
 
-			if (msg_info->info.msg_type == DISPLAY_MENU_UNLOCK ||
-				msg_info->info.msg_type == DISPLAY_MENU_UNLOCK_CRITICAL) {
-				/* wipe data */
-				struct recovery_message msg;
-
-				memset(&msg, 0, sizeof(msg));
-				snprintf(msg.recovery, sizeof(msg.recovery), "recovery\n--wipe_data");
-				write_misc(0, &msg, sizeof(msg));
-			}
-			reboot_device(RECOVERY_MODE);
+			/* Continue boot, no need to detect the keys'status */
+			msg_info->info.is_exit = true;
+			boot_into_recovery = 1;
+			boot_linux_from_mmc();
 			break;
 		case RESTART:
 			reboot_device(0);
@@ -149,18 +125,12 @@ static void update_device_status(struct select_msg_info* msg_info, int reason)
 
 			/* Continue boot, no need to detect the keys'status */
 			msg_info->info.is_exit = true;
+			boot_into_recovery = 0;
+			boot_linux_from_mmc();
 			break;
 		case BACK:
-			display_bootverify_menu_renew(msg_info, msg_info->last_msg_type);
 			before_time = current_time();
 
-			break;
-		case FFBM:
-			memset(&ffbm_page_buffer, 0, sizeof(ffbm_page_buffer));
-			snprintf(ffbm_page_buffer, sizeof(ffbm_page_buffer), "ffbm-00");
-			write_misc(0, ffbm_page_buffer, sizeof(ffbm_page_buffer));
-
-			reboot_device(0);
 			break;
 	}
 }
@@ -251,25 +221,6 @@ static void power_key_func(struct select_msg_info* msg_info)
 	int reason = -1;
 
 	switch (msg_info->info.msg_type) {
-		case DISPLAY_MENU_YELLOW:
-		case DISPLAY_MENU_ORANGE:
-		case DISPLAY_MENU_RED:
-		case DISPLAY_MENU_LOGGING:
-			reason = CONTINUE;
-			break;
-		case DISPLAY_MENU_EIO:
-			pwr_key_is_pressed = true;
-			reason = CONTINUE;
-			break;
-		case DISPLAY_MENU_MORE_OPTION:
-			if(msg_info->info.option_index < ARRAY_SIZE(verify_index_action))
-				reason = verify_index_action[msg_info->info.option_index];
-			break;
-		case DISPLAY_MENU_UNLOCK:
-		case DISPLAY_MENU_UNLOCK_CRITICAL:
-			if(msg_info->info.option_index < ARRAY_SIZE(unlock_index_action))
-				reason = unlock_index_action[msg_info->info.option_index];
-			break;
 		case DISPLAY_MENU_FASTBOOT:
 			if(msg_info->info.option_index < ARRAY_SIZE(fastboot_index_action))
 				reason = fastboot_index_action[msg_info->info.option_index];
@@ -284,60 +235,7 @@ static void power_key_func(struct select_msg_info* msg_info)
 	}
 }
 
-/* Initialize different page's function
- * DISPLAY_MENU_UNLOCK/DISPLAY_MENU_UNLOCK_CRITICAL
- * DISPLAY_MENU_MORE_OPTION/DISPLAY_MENU_FASTBOOT:
- *	up_action_func: update select option's background when volume up
- *	is pressed
- *	down_action_func: update select option's background when volume up
- *	is pressed
- *	enter_action_func: update device's status via select option
- * DISPLAY_MENU_YELLOW/DISPLAY_MENU_ORANGE/DISPLAY_MENU_RED:
- *	up_action_func/down_action_func: enter BOOT_VERIFY_PAGE2 when volume
- *	key is pressed
- *	enter_action_func: continue booting
- */
 static struct pages_action menu_pages_action[] = {
-	[DISPLAY_MENU_UNLOCK] = {
-		menu_volume_up_func,
-		menu_volume_down_func,
-		power_key_func,
-	},
-	[DISPLAY_MENU_UNLOCK_CRITICAL] = {
-		menu_volume_up_func,
-		menu_volume_down_func,
-		power_key_func,
-	},
-	[DISPLAY_MENU_YELLOW] = {
-		boot_warning_volume_keys_func,
-		boot_warning_volume_keys_func,
-		power_key_func,
-	},
-	[DISPLAY_MENU_ORANGE] = {
-		boot_warning_volume_keys_func,
-		boot_warning_volume_keys_func,
-		power_key_func,
-	},
-	[DISPLAY_MENU_RED] = {
-		boot_warning_volume_keys_func,
-		boot_warning_volume_keys_func,
-		power_key_func,
-	},
-	[DISPLAY_MENU_LOGGING] = {
-		boot_warning_volume_keys_func,
-		boot_warning_volume_keys_func,
-		power_key_func,
-	},
-	[DISPLAY_MENU_EIO] = {
-		boot_warning_volume_keys_func,
-		boot_warning_volume_keys_func,
-		power_key_func,
-	},
-	[DISPLAY_MENU_MORE_OPTION] = {
-		menu_volume_up_func,
-		menu_volume_down_func,
-		power_key_func,
-	},
 	[DISPLAY_MENU_FASTBOOT] = {
 		menu_volume_up_func,
 		menu_volume_down_func,

@@ -62,6 +62,13 @@ static struct mdss_dsi_phy_ctrl dsi_video_mode_phy_db;
 extern int msm_display_init(struct msm_fb_panel_data *pdata);
 extern int msm_display_off();
 
+int target_backlight_type()
+{
+	if (panelstruct.backlightinfo)
+		return panelstruct.backlightinfo->bl_interface_type;
+	return -1;
+}
+
 static uint32_t panel_backlight_ctrl(uint8_t enable)
 {
 	uint32_t ret = NO_ERROR;

@@ -262,7 +262,7 @@ static int dev_tree_compatible(void *dtb, uint32_t dtb_size, struct dt_entry_nod
 					cur_dt_entry->variant_id,
 					cur_dt_entry->soc_rev,
 					board_platform_id(),
-					board_hardware_id(),
+					board_target_id(),
 					board_soc_version());
 
 			} else {
@@ -271,7 +271,7 @@ static int dev_tree_compatible(void *dtb, uint32_t dtb_size, struct dt_entry_nod
 					cur_dt_entry->variant_id,
 					cur_dt_entry->soc_rev,
 					board_platform_id(),
-					board_hardware_id(),
+					board_target_id(),
 					board_soc_version());
 				plat_prop += DT_ENTRY_V1_SIZE;
 				len_plat_id -= DT_ENTRY_V1_SIZE;
@@ -423,7 +423,7 @@ static int dev_tree_compatible(void *dtb, uint32_t dtb_size, struct dt_entry_nod
 					dt_entry_array[i].soc_rev,
 					dt_entry_array[i].board_hw_subtype,
 					board_platform_id(),
-					board_hardware_id(),
+					board_target_id(),
 					board_hardware_subtype(),
 					board_soc_version());
 
@@ -434,7 +434,7 @@ static int dev_tree_compatible(void *dtb, uint32_t dtb_size, struct dt_entry_nod
 					dt_entry_array[i].soc_rev,
 					dt_entry_array[i].board_hw_subtype,
 					board_platform_id(),
-					board_hardware_id(),
+					board_target_id(),
 					board_hardware_subtype(),
 					board_soc_version());
 			}
@@ -597,34 +597,16 @@ int dev_tree_validate(struct dt_table *table, unsigned int page_size, uint32_t *
 
 static int platform_dt_absolute_match(struct dt_entry *cur_dt_entry, struct dt_entry_node *dt_list)
 {
-	uint32_t cur_dt_hlos_ddr;
-	uint32_t cur_dt_hw_platform;
-	uint32_t cur_dt_hw_subtype;
-	uint32_t cur_dt_msm_id;
 	dt_node *dt_node_tmp = NULL;
-
-	/* Platform-id
-	* bit no |31	 24|23	16|15	0|
-	*        |reserved|foundry-id|msm-id|
-	*/
-	cur_dt_msm_id = (cur_dt_entry->platform_id & 0x0000ffff);
-	cur_dt_hw_platform = (cur_dt_entry->variant_id & 0x000000ff);
-	cur_dt_hw_subtype = (cur_dt_entry->board_hw_subtype & 0xff);
-
-	/* Determine the bits 10:8 to check the DT with the DDR Size */
-	cur_dt_hlos_ddr = (cur_dt_entry->board_hw_subtype & 0x700);
 
 	/* 1. must match the msm_id, platform_hw_id, platform_subtype and DDR size
 	*  soc, board major/minor, pmic major/minor must less than board info
 	*  2. find the matched DTB then return 1
 	*  3. otherwise return 0
 	*/
-	if((cur_dt_msm_id == (board_platform_id() & 0x0000ffff)) &&
-		(cur_dt_hw_platform == board_hardware_id()) &&
-		(cur_dt_hw_subtype == board_hardware_subtype()) &&
-		(cur_dt_hlos_ddr == (target_get_hlos_subtype() & 0x700)) &&
+	if ((cur_dt_entry->platform_id == board_platform_id()) &&
 		(cur_dt_entry->soc_rev <= board_soc_version()) &&
-		((cur_dt_entry->variant_id & 0x00ffff00) <= (board_target_id() & 0x00ffff00)) &&
+		(cur_dt_entry->variant_id == board_target_id()) &&
 		((cur_dt_entry->pmic_rev[0] & 0x00ffff00) <= (board_pmic_target(0) & 0x00ffff00)) &&
 		((cur_dt_entry->pmic_rev[1] & 0x00ffff00) <= (board_pmic_target(1) & 0x00ffff00)) &&
 		((cur_dt_entry->pmic_rev[2] & 0x00ffff00) <= (board_pmic_target(2) & 0x00ffff00)) &&
@@ -883,69 +865,19 @@ static int update_dtb_entry_node(struct dt_entry_node *dt_list, uint32_t dtb_inf
 static struct dt_entry *platform_dt_match_best(struct dt_entry_node *dt_list)
 {
 	struct dt_entry_node *dt_node_tmp1 = NULL;
-
-	/* check Foundry id
-	* the foundry id must exact match board founddry id, this is compatibility check,
-	* if couldn't find the exact match from DTB, will exact match 0x0.
-	*/
-	if (!platform_dt_absolute_compat_match(dt_list, DTB_FOUNDRY))
-		return NULL;
-
-	/* check PMIC model
-	* the PMIC model must exact match board PMIC model, this is compatibility check,
-	* if couldn't find the exact match from DTB, will exact match 0x0.
-	*/
-	if (!platform_dt_absolute_compat_match(dt_list, DTB_PMIC_MODEL))
-		return NULL;
-
-	/* check panel type
-	* the panel  type must exact match board panel type, this is compatibility check,
-	* if couldn't find the exact match from DTB, will exact match 0x0.
-	*/
-	if (!platform_dt_absolute_compat_match(dt_list, DTB_PANEL_TYPE))
-		return NULL;
-
-	/* check boot device subtype
-	* the boot device subtype must exact match board boot device subtype, this is compatibility check,
-	* if couldn't find the exact match from DTB, will exact match 0x0.
-	*/
-	if (!platform_dt_absolute_compat_match(dt_list, DTB_BOOT_DEVICE))
-		return NULL;
-
-	/* check soc version
-	* the suitable soc version must less than or equal to board soc version
-	*/
-	if (!update_dtb_entry_node(dt_list, DTB_SOC))
-		return NULL;
-
-	/*check major and minor version
-	* the suitable major&minor version must less than or equal to board major&minor version
-	*/
-	if (!update_dtb_entry_node(dt_list, DTB_MAJOR_MINOR))
-		return NULL;
-
-	/*check pmic info
-	* the suitable pmic major&minor info must less than or equal to board pmic major&minor version
-	*/
-	if (!update_dtb_entry_node(dt_list, DTB_PMIC0))
-		return NULL;
-	if (!update_dtb_entry_node(dt_list, DTB_PMIC1))
-		return NULL;
-	if (!update_dtb_entry_node(dt_list, DTB_PMIC2))
-		return NULL;
-	if (!update_dtb_entry_node(dt_list, DTB_PMIC3))
-		return NULL;
-
+	struct dt_entry *best_entry = NULL;
 	list_for_every_entry(&dt_list->node, dt_node_tmp1, dt_node, node) {
 		if (!dt_node_tmp1) {
 			dprintf(CRITICAL, "ERROR: Couldn't find the suitable DTB!\n");
 			return NULL;
 		}
-		if (dt_node_tmp1->dt_entry_m)
-			return dt_node_tmp1->dt_entry_m;
+		if (dt_node_tmp1->dt_entry_m && dt_node_tmp1->dt_entry_m->board_hw_subtype <= board_hardware_subtype()) {
+			if (!best_entry || board_hardware_subtype() - dt_node_tmp1->dt_entry_m->board_hw_subtype < board_hardware_subtype() - best_entry->board_hw_subtype)
+					best_entry = dt_node_tmp1->dt_entry_m;
+		}
 	}
 
-	return NULL;
+	return best_entry;
 }
 
 /* Function to obtain the index information for the correct device tree
@@ -996,7 +928,7 @@ int dev_tree_get_entry_info(struct dt_table *table, struct dt_entry *dt_entry_in
 			cur_dt_entry->platform_id = dt_entry_v1->platform_id;
 			cur_dt_entry->variant_id = dt_entry_v1->variant_id;
 			cur_dt_entry->soc_rev = dt_entry_v1->soc_rev;
-			cur_dt_entry->board_hw_subtype = (dt_entry_v1->variant_id >> 0x18);
+			cur_dt_entry->board_hw_subtype = 0;
 			cur_dt_entry->pmic_rev[0] = board_pmic_target(0);
 			cur_dt_entry->pmic_rev[1] = board_pmic_target(1);
 			cur_dt_entry->pmic_rev[2] = board_pmic_target(2);
@@ -1010,20 +942,7 @@ int dev_tree_get_entry_info(struct dt_table *table, struct dt_entry *dt_entry_in
 			cur_dt_entry->platform_id = dt_entry_v2->platform_id;
 			cur_dt_entry->variant_id = dt_entry_v2->variant_id;
 			cur_dt_entry->soc_rev = dt_entry_v2->soc_rev;
-			/* For V2 version of DTBs we have platform version field as part
-			 * of variant ID, in such case the subtype will be mentioned as 0x0
-			 * As the qcom, board-id = <0xSSPMPmPH, 0x0>
-			 * SS -- Subtype
-			 * PM -- Platform major version
-			 * Pm -- Platform minor version
-			 * PH -- Platform hardware CDP/MTP
-			 * In such case to make it compatible with LK algorithm move the subtype
-			 * from variant_id to subtype field
-			 */
-			if (dt_entry_v2->board_hw_subtype == 0)
-				cur_dt_entry->board_hw_subtype = (cur_dt_entry->variant_id >> 0x18);
-			else
-				cur_dt_entry->board_hw_subtype = dt_entry_v2->board_hw_subtype;
+			cur_dt_entry->board_hw_subtype = dt_entry_v2->board_hw_subtype;
 			cur_dt_entry->pmic_rev[0] = board_pmic_target(0);
 			cur_dt_entry->pmic_rev[1] = board_pmic_target(1);
 			cur_dt_entry->pmic_rev[2] = board_pmic_target(2);
@@ -1035,18 +954,6 @@ int dev_tree_get_entry_info(struct dt_table *table, struct dt_entry *dt_entry_in
 		case DEV_TREE_VERSION_V3:
 			memcpy(cur_dt_entry, (struct dt_entry *)table_ptr,
 				   sizeof(struct dt_entry));
-			/* For V3 version of DTBs we have platform version field as part
-			 * of variant ID, in such case the subtype will be mentioned as 0x0
-			 * As the qcom, board-id = <0xSSPMPmPH, 0x0>
-			 * SS -- Subtype
-			 * PM -- Platform major version
-			 * Pm -- Platform minor version
-			 * PH -- Platform hardware CDP/MTP
-			 * In such case to make it compatible with LK algorithm move the subtype
-			 * from variant_id to subtype field
-			 */
-			if (cur_dt_entry->board_hw_subtype == 0)
-				cur_dt_entry->board_hw_subtype = (cur_dt_entry->variant_id >> 0x18);
 
 			table_ptr += sizeof(struct dt_entry);
 			break;
@@ -1061,7 +968,6 @@ int dev_tree_get_entry_info(struct dt_table *table, struct dt_entry *dt_entry_in
 		* The satisfactory DTBs are stored in dt_entry_queue
 		*/
 		platform_dt_absolute_match(cur_dt_entry, dt_entry_queue);
-
 	}
 	best_match_dt_entry = platform_dt_match_best(dt_entry_queue);
 	if (best_match_dt_entry) {
@@ -1070,7 +976,7 @@ int dev_tree_get_entry_info(struct dt_table *table, struct dt_entry *dt_entry_in
 	}
 
 	if (found != 0) {
-		dprintf(INFO, "Using DTB entry 0x%08x/%08x/0x%08x/%u for device 0x%08x/%08x/0x%08x/%u\n",
+		dprintf(INFO, "Using DTB entry 0x%08x/%08x/0x%08x/%x for device 0x%08x/%08x/0x%08x/%x\n",
 				dt_entry_info->platform_id, dt_entry_info->soc_rev,
 				dt_entry_info->variant_id, dt_entry_info->board_hw_subtype,
 				board_platform_id(), board_soc_version(),
@@ -1090,7 +996,7 @@ int dev_tree_get_entry_info(struct dt_table *table, struct dt_entry *dt_entry_in
 		return 0;
 	}
 
-	dprintf(CRITICAL, "ERROR: Unable to find suitable device tree for device (%u/0x%08x/0x%08x/%u)\n",
+	dprintf(CRITICAL, "ERROR: Unable to find suitable device tree for device (%u/0x%08x/0x%08x/%x)\n",
 			board_platform_id(), board_soc_version(),
 			board_target_id(), board_hardware_subtype());
 

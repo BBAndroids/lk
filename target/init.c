@@ -148,15 +148,6 @@ __WEAK int emmc_recovery_init(void)
 	return 0;
 }
 
-__WEAK bool target_use_signed_kernel(void)
-{
-#if _SIGNED_KERNEL
-	return 1;
-#else
-	return 0;
-#endif
-}
-
 __WEAK bool target_is_ssd_enabled(void)
 {
 #ifdef SSD_ENABLE
@@ -281,73 +272,12 @@ uint32_t target_ddr_cfg_reg()
 	return ret;
 }
 
-#if VERIFIED_BOOT_LE
-int verified_boot_le = 1;
-#else
-int verified_boot_le = 0;
-#endif
-
-int is_vb_le_enabled(void)
-{
-	uint32_t platform = board_platform_id();
-
-	switch(platform)
-	{
-		case APQ8053:
-			return verified_boot_le;
-		default:
-			break;
-	}
-	return 0;
-}
-
 #if PON_VIB_SUPPORT
 void get_vibration_type(struct qpnp_hap *config)
 {
-	uint32_t hw_id = board_hardware_id();
-	uint32_t platform = board_platform_id();
-
-	config->vib_type = VIB_ERM_TYPE;
+	config->vib_type = VIB_ERM_TYPE; // VIB_LRA_TYPE?
 	config->hap_rate_cfg1 = QPNP_HAP_RATE_CFG1_1c;
 	config->hap_rate_cfg2 = QPNP_HAP_RATE_CFG2_04;
-	switch(hw_id){
-	case HW_PLATFORM_MTP:
-		switch(platform){
-		case MSM8952:
-			config->vib_type = VIB_ERM_TYPE;
-			break;
-		case MSM8976:
-		case MSM8956:
-		case APQ8056:
-			config->vib_type = VIB_LRA_TYPE;
-			break;
-		case MSM8937:
-		case MSM8940:
-		case APQ8037:
-		case MSM8917:
-		case MSM8920:
-		case MSM8217:
-		case MSM8617:
-		case APQ8017:
-		case MSM8953:
-		case APQ8053:
-		case SDM450:
-			config->vib_type = VIB_LRA_TYPE;
-			config->hap_rate_cfg1 = QPNP_HAP_RATE_CFG1_41;
-			config->hap_rate_cfg2 = QPNP_HAP_RATE_CFG2_03;
-			break;
-		default:
-			dprintf(CRITICAL,"Unsupported platform id\n");
-			break;
-		}
-		break;
-	case HW_PLATFORM_QRD:
-		config->vib_type = VIB_ERM_TYPE;
-		break;
-	default:
-		dprintf(CRITICAL,"Unsupported hardware id\n");
-		break;
-	}
 }
 #endif
 

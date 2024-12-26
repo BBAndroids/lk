@@ -56,14 +56,6 @@ ifeq ($(EMMC_BOOT),1)
   CFLAGS += -D_EMMC_BOOT=1
 endif
 
-ifeq ($(SIGNED_KERNEL),1)
-  CFLAGS += -D_SIGNED_KERNEL=1
-endif
-
-ifeq ($(TARGET_BUILD_VARIANT),user)
-  CFLAGS += -DDISABLE_FASTBOOT_CMDS=1
-endif
-
 ifeq ($(APPEND_CMDLINE),1)
   CFLAGS += -D_APPEND_CMDLINE=1
 endif
@@ -108,25 +100,6 @@ DEFINES := LK=1
 # Useful for header files that may be included by one or more source files.
 SRCDEPS := $(CONFIGHEADER)
 
-ifeq ($(VERIFIED_BOOT),1)
-  DEFINES += VERIFIED_BOOT=1
-  DEFINES += _SIGNED_KERNEL=1
-  ifeq ($(DEFAULT_UNLOCK),true)
-    DEFINES += DEFAULT_UNLOCK=1
-  endif
-endif
-
-ifeq ($(VERIFIED_BOOT_LE),1)
-  DEFINES += VERIFIED_BOOT_LE=1
-  ifeq ($(DEFAULT_UNLOCK),true)
-    DEFINES += DEFAULT_UNLOCK=1
-  endif
-endif
-
-ifeq ($(VBLEIMA),1)
-  DEFINES += VBLEIMA=1
-endif
-
 ifeq ($(OSVERSION_IN_BOOTIMAGE),1)
  DEFINES += OSVERSION_IN_BOOTIMAGE=1
 endif
@@ -137,12 +110,6 @@ endif
 
 ifeq ($(USER_BUILD_VARIANT),true)
   DEFINES += USER_BUILD_VARIANT=1
-endif
-
-ifeq ($(USE_LE_SYSTEMD),true)
-  DEFINES += USE_LE_SYSTEMD=1
-else
-  DEFINES += USE_LE_SYSTEMD=0
 endif
 
 # these need to be filled out by the project/target/platform rules.mk files

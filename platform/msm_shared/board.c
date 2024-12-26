@@ -279,6 +279,10 @@ static void platform_detect()
 		 *                               |  bits   |             |  bits   | Detection |
 		 */
 		board.platform_hlos_subtype = (board_get_ddr_subtype() << 8) | (platform_get_boot_dev() << 16) | (platform_detect_panel() << 11);
+
+		/* BBRY */
+		board.target = bbry_get_hwid();
+		board.platform_subtype = bbry_get_rev();
 	}
 	else
 	{

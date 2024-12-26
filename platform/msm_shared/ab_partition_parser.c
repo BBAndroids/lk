@@ -379,15 +379,15 @@ void guid_update(struct partition_entry *partition_entries,
 		unsigned old_index,
 		unsigned new_index)
 {
-	unsigned char tmp_guid[PARTITION_TYPE_GUID_SIZE];
+	unsigned char tmp_guid[GUID_SIZE];
 
 	memcpy(tmp_guid, partition_entries[old_index].type_guid,
-				PARTITION_TYPE_GUID_SIZE);
+				GUID_SIZE);
 	memcpy(partition_entries[old_index].type_guid,
 			partition_entries[new_index].type_guid,
-			PARTITION_TYPE_GUID_SIZE);
+			GUID_SIZE);
 	memcpy(partition_entries[new_index].type_guid, tmp_guid,
-				PARTITION_TYPE_GUID_SIZE);
+				GUID_SIZE);
 	return;
 }
 
@@ -630,8 +630,8 @@ update_gpt(uint64_t gpt_start_addr,
 		/* Update the partition attributes */
 		PUT_LONG_LONG(&tmp[ATTRIBUTE_FLAG_OFFSET],
 			partition_entries[i].attribute_flag);
-		memscpy(tmp, PARTITION_TYPE_GUID_SIZE, partition_entries[i].type_guid,
-				PARTITION_TYPE_GUID_SIZE);
+		memscpy(tmp, GUID_SIZE, partition_entries[i].type_guid,
+				GUID_SIZE);
 
 		/* point to the next partition entry */
 		tmp += PARTITION_ENTRY_SIZE;

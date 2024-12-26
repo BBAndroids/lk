@@ -29,44 +29,17 @@
 #include <reg.h>
 #include <board.h>
 
-#define PERPH_SUBTYPE(base)            (base + 0x05)
-#define RGB_LED_PERPH_TYPE(base)       (base + 0x04)
-#define RGB_LED_SRC_SEL(base)          (base + 0x45)
-#define RGB_LED_EN_CTL(base)           (base + 0x46)
-#define RGB_LED_ATC_CTL(base)          (base + 0x47)
-#define LPG_PERPH_TYPE(base)           (base + 0x04)
-#define LPG_PERPH_SUBTYPE(base)        (base + 0x05)
-#define LPG_PATTERN_CONFIG(base)       (base + 0x40)
-#define LPG_PWM_SIZE_CLK(base)         (base + 0x41)
-#define LPG_PWM_FREQ_PREDIV_CLK(base)  (base + 0x42)
-#define LPG_PWM_TYPE_CONFIG(base)      (base + 0x43)
-#define PWM_VALUE_LSB(base)            (base + 0x44)
-#define PWM_VALUE_MSB(base)            (base + 0x45)
-#define LPG_ENABLE_CONTROL(base)       (base + 0x46)
-#define PWM_SYNC(base)                 (base + 0x47)
-
-#define RGB_LED_ENABLE_BLUE       0x20
-#define RGB_LED_ENABLE_GREEN      0x40
-#define RGB_LED_ENABLE_RED        0x80
-#define RGB_LED_SOURCE_VPH_PWR    0x01
-#define RGB_LED_ENABLE_MASK       0xE0
-#define RGB_LED_SRC_MASK          0xfc
-#define PWM_6BIT_1KHZ_CLK         0x01
-#define PWM_FREQ                  0x05
-#define RGB_LED_ENABLE_PWM        0xe4
-
-enum qpnp_led_op {
-       QPNP_LED_RED,
-       QPNP_LED_GREEN,
-       QPNP_LED_BLUE,
-};
-
 struct qpnp_led_data {
        uint16_t base;
-       uint16_t lpg_base;
-       enum qpnp_led_op color_sel;
+       uint16_t red_lpg_base;
+       uint16_t green_lpg_base;
+       uint16_t blue_lpg_base;
+	   uint8_t red;
+	   uint8_t green;
+	   uint8_t blue;
 };
 
 /* LED Initial Setup */
-void qpnp_led_init(enum qpnp_led_op color, uint16_t led_base_addr,
-	uint16_t lpg_base_addr);
+void qpnp_led_init(uint16_t led_base_addr, uint16_t red_lpg_base_addr, uint16_t green_lpg_base_addr, uint16_t blue_lpg_base_addr);
+
+void qpnp_led_set(uint8_t red, uint8_t green, uint8_t blue);

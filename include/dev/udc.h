@@ -88,6 +88,7 @@ int udc_init(struct udc_device *devinfo);
 int udc_register_gadget(struct udc_gadget *gadget);
 int udc_start(void);
 int udc_stop(void);
+int udc_is_online(void);
 
 /* these should probably go elsewhere */
 #define GET_STATUS           0

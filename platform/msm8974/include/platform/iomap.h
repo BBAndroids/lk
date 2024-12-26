@@ -274,6 +274,11 @@
 #define VIDEO_MODE_CTRL             0x010
 #define HS_TIMER_CTRL               0x0BC
 
+#define QPNP_LED_CTRL_BASE          0xD000
+#define QPNP_BLUE_LPG_CTRL_BASE     0xB500
+#define QPNP_GREEN_LPG_CTRL_BASE    0xB600
+#define QPNP_RED_LPG_CTRL_BASE      0xB700
+
 /* DRV strength for sdcc */
 #define SDC1_HDRV_PULL_CTL           (TLMM_BASE_ADDR + 0x00002044)
 

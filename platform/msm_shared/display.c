@@ -266,6 +266,29 @@ msm_display_on_out:
 	return ret;
 }
 
+static char cmdoff_cmd0[] = { 0x28, 0x00, 0x05, 0x80 };
+static char cmdon_cmd0[] = { 0x29, 0x00, 0x05, 0x80 };
+
+static struct mipi_dsi_cmd off_on_command[] = {
+	{ 0x4, cmdoff_cmd0, 0},
+	{ 0x4, cmdon_cmd0, 10},
+};
+
+static void msm_display_update(void)
+{
+	struct msm_panel_info *pinfo;
+	struct mipi_panel_info *mipi;
+
+	pinfo = &(panel->panel_info);
+	mipi = &(pinfo->mipi);
+
+	mdss_dsi_cmds_tx(mipi, off_on_command,
+		sizeof(off_on_command) / sizeof(off_on_command[0]),
+		mipi->broadcast);
+
+	mdp_dma_on(pinfo);
+}
+
 int msm_display_init(struct msm_fb_panel_data *pdata)
 {
 	int ret = NO_ERROR;
@@ -328,6 +351,8 @@ int msm_display_init(struct msm_fb_panel_data *pdata)
 	ret = msm_fb_alloc(&(panel->fb));
 	if (ret)
 		goto msm_display_init_out;
+		
+	panel->fb.update_start = msm_display_update;
 
 	fbcon_setup(&(panel->fb));
 	display_image_on_screen();

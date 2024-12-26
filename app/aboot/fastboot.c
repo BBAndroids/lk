@@ -68,11 +68,11 @@ static void fastboot_notify(struct udc_gadget *gadget, unsigned event);
 static struct udc_endpoint *fastboot_endpoints[2];
 
 static struct udc_device surf_udc_device = {
-	.vendor_id    = 0x18d1,
-	.product_id   = 0xD00D,
-	.version_id   = 0x0100,
-	.manufacturer = "Google",
-	.product      = "Android",
+	.vendor_id    = 0x0FCA,
+	.product_id   = 0x8030,
+	.version_id   = 0x0242,
+	.manufacturer = "BlackBerry",
+	.product      = "Oslo",
 };
 
 static struct udc_gadget fastboot_gadget = {

@@ -82,16 +82,9 @@ int platform_is_apq8096_mediabox();
 bool platform_use_qmp_misc_settings();
 void set_device_unlock_value(int type, bool status);
 void get_product_name(unsigned char *buf);
-void get_bootloader_version(unsigned char *buf);
-void get_baseband_version(unsigned char *buf);
-bool is_device_locked();
 bool platform_is_mdm9650();
 bool platform_is_sdx20();
 uint64_t platform_get_ddr_start();
 bool platform_is_glink_enabled();
 bool platform_is_mdm9206();
-int is_vb_le_enabled();
-#if VBLEIMA
-int platform_is_vbleima_enabled();
-#endif
 #endif

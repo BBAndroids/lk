@@ -56,11 +56,11 @@ static uint8_t edp_enable;
 /* GPIO configuration                                                        */
 /*---------------------------------------------------------------------------*/
 static struct gpio_pin reset_gpio = {
-  "pm8941_gpios", 19, 2, 1, 0, 1
+  "msmgpio", 46, 2, 1, 0, 1
 };
 
 static struct gpio_pin enable_gpio = {
-  "msmgpio", 58, 3, 1, 0, 1
+  "msmgpio", 8, 3, 1, 0, 1
 };
 
 static struct gpio_pin pwm_gpio = {
@@ -71,7 +71,7 @@ static struct gpio_pin pwm_gpio = {
 /* LDO configuration                                                         */
 /*---------------------------------------------------------------------------*/
 static struct ldo_entry ldo_entry_array[] = {
-  { "vdd", 22, 0, 3000000, 100000, 100, 0, 20, 0, 0},
+  { "vdd", 22, 0, 2850000, 100000, 100, 0, 20, 0, 0},
   { "vddio", 12, 0, 1800000, 100000, 100, 0, 20, 0, 0},
   { "vdda", 2, 1, 1200000, 100000, 100, 0, 0, 0, 0},
 };
@@ -160,17 +160,8 @@ static void dsi_pll_enable_seq(uint32_t pll_base)
 
 static int msm8974_wled_backlight_ctrl(uint8_t enable)
 {
-	uint32_t platform_id = board_platform_id();
-	uint32_t hardware_id = board_hardware_id();
-	uint8_t slave_id = 1;
-
 	if (enable) {
-		if (platform_id == MSM8974AC)
-			if ((hardware_id == HW_PLATFORM_MTP)
-			    || (hardware_id == HW_PLATFORM_LIQUID))
-				slave_id = 3;
-
-		pm8x41_wled_config_slave_id(slave_id);
+		pm8x41_wled_config_slave_id(1);
 		pm8x41_wled_config(&wled_ctrl);
 		pm8x41_wled_sink_control(enable);
 		pm8x41_wled_iled_sync_control(enable);
@@ -278,8 +269,6 @@ int target_panel_reset(uint8_t enable, struct panel_reset_sequence *resetseq,
 					struct msm_panel_info *pinfo)
 {
 	uint32_t rst_gpio = reset_gpio.pin_id;
-	uint32_t platform_id = board_platform_id();
-	uint32_t hardware_id = board_hardware_id();
 
 	struct pm8x41_gpio resetgpio_param = {
 		.direction = PM_GPIO_DIR_OUT,
@@ -287,13 +276,8 @@ int target_panel_reset(uint8_t enable, struct panel_reset_sequence *resetseq,
 		.out_strength = PM_GPIO_OUT_DRIVE_MED,
 	};
 
-	if (platform_id == MSM8974AC)
-		if ((hardware_id == HW_PLATFORM_MTP)
-		    || (hardware_id == HW_PLATFORM_LIQUID))
-			rst_gpio = 20;
-
-	dprintf(SPEW, "platform_id: %u, rst_gpio: %u\n",
-				platform_id, rst_gpio);
+	if (strcmp(bbry_get_product(), "oslo") == 0)
+		gpio_tlmm_config(46, 0, GPIO_INPUT, GPIO_NO_PULL, GPIO_2MA, GPIO_ENABLE);
 
 	pm8x41_gpio_config(rst_gpio, &resetgpio_param);
 	if (enable) {
@@ -419,7 +403,6 @@ bool target_display_panel_node(char *pbuf, uint16_t buf_size)
 
 void target_display_init(const char *panel_name)
 {
-	uint32_t hw_id = board_hardware_id();
 	uint32_t panel_loop = 0;
 	int ret = 0;
 	struct oem_panel_data oem;
@@ -444,36 +427,17 @@ void target_display_init(const char *panel_name)
 		return;
 	}
 
-	switch (hw_id) {
-	case HW_PLATFORM_LIQUID:
-		edp_panel_init(&(panel.panel_info));
-		panel.clk_func = msm8974_mdss_edp_panel_clock;
-		panel.power_func = msm8974_edp_panel_power;
-		panel.fb.base = (void *)EDP_FB_ADDR;
-		panel.fb.format = FB_FORMAT_RGB888;
-		panel.mdp_rev = MDP_REV_50;
-
-		if (msm_display_init(&panel)) {
-			dprintf(CRITICAL, "edp init failed!\n");
-			return;
+	do {
+		target_force_cont_splash_disable(false);
+		ret = gcdb_display_init(oem.panel, MDP_REV_50,
+			(void *)MIPI_FB_ADDR);
+		if (!ret || ret == ERR_NOT_SUPPORTED) {
+			break;
+		} else {
+			target_force_cont_splash_disable(true);
+			msm_display_off();
 		}
-
-		edp_enable = 1;
-		break;
-	default:
-		do {
-			target_force_cont_splash_disable(false);
-			ret = gcdb_display_init(oem.panel, MDP_REV_50,
-				(void *)MIPI_FB_ADDR);
-			if (!ret || ret == ERR_NOT_SUPPORTED) {
-				break;
-			} else {
-				target_force_cont_splash_disable(true);
-				msm_display_off();
-			}
-		} while (++panel_loop <= (uint32_t)oem_panel_max_auto_detect_panels());
-		break;
-	}
+	} while (++panel_loop <= (uint32_t)oem_panel_max_auto_detect_panels());
 
 	if (!oem.cont_splash) {
 		dprintf(INFO, "Forcing continuous splash disable\n");
@@ -483,14 +447,5 @@ void target_display_init(const char *panel_name)
 
 void target_display_shutdown(void)
 {
-	uint32_t hw_id = board_hardware_id();
-	switch (hw_id) {
-	case HW_PLATFORM_LIQUID:
-		if (edp_enable)
-			msm_display_off();
-		break;
-	default:
-		gcdb_display_shutdown();
-		break;
-	}
+	gcdb_display_shutdown();
 }

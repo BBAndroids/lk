@@ -964,3 +964,8 @@ int udc_stop(void)
 
 	return 0;
 }
+
+int udc_is_online(void)
+{
+	return usb_online;
+}

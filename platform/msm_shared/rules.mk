@@ -50,11 +50,6 @@ OBJS += \
 	$(LOCAL_DIR)/mmc.o
 endif
 
-ifeq ($(VERIFIED_BOOT),1)
-OBJS += \
-	$(LOCAL_DIR)/boot_verifier.o
-endif
-
 ifeq ($(ENABLE_FBCON_DISPLAY_MSG),1)
 OBJS += \
 	$(LOCAL_DIR)/menu_keys_detect.o \

@@ -166,6 +166,8 @@ enum {
 	BL_PWM = 0,
 	BL_WLED,
 	BL_DCS,
+	BL_SAMANTA_V1,
+	BL_SAMANTA_V2,
 };
 
 struct panel_reset_sequence {

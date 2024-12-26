@@ -51,12 +51,14 @@
 
 /* GPT Offsets */
 #define PROTECTIVE_MBR_SIZE       BLOCK_SIZE
+#define REVISION_OFFSET           8
 #define HEADER_SIZE_OFFSET        12
 #define HEADER_CRC_OFFSET         16
 #define PRIMARY_HEADER_OFFSET     24
 #define BACKUP_HEADER_OFFSET      32
 #define FIRST_USABLE_LBA_OFFSET   40
 #define LAST_USABLE_LBA_OFFSET    48
+#define DISK_GUID_OFFSET          56
 #define PARTITION_ENTRIES_OFFSET  72
 #define PARTITION_COUNT_OFFSET    80
 #define PENTRY_SIZE_OFFSET        84
@@ -68,6 +70,7 @@
 
 #define ENTRY_SIZE              0x080
 
+#define TYPE_GUID_OFFSET          0
 #define UNIQUE_GUID_OFFSET        16
 #define FIRST_LBA_OFFSET          32
 #define LAST_LBA_OFFSET           40
@@ -75,8 +78,7 @@
 #define PARTITION_NAME_OFFSET     56
 
 #define MAX_GPT_NAME_SIZE          72
-#define PARTITION_TYPE_GUID_SIZE   16
-#define UNIQUE_PARTITION_GUID_SIZE 16
+#define GUID_SIZE                  16
 #define NUM_PARTITIONS             128
 #define PART_ATT_READONLY_OFFSET   60
 
@@ -169,9 +171,9 @@
 
 /* Unified mbr and gpt entry types */
 struct partition_entry {
-	unsigned char type_guid[PARTITION_TYPE_GUID_SIZE];
+	unsigned char type_guid[GUID_SIZE];
 	unsigned dtype;
-	unsigned char unique_partition_guid[UNIQUE_PARTITION_GUID_SIZE];
+	unsigned char unique_partition_guid[GUID_SIZE];
 	unsigned long long first_lba;
 	unsigned long long last_lba;
 	unsigned long long size;

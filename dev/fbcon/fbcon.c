@@ -482,13 +482,14 @@ void fbcon_extract_to_screen(logo_img_header *header, void* address)
 
 void display_default_image_on_screen(void)
 {
+#ifndef SPLASH_IMAGE_RLE
 	unsigned i = 0;
 	unsigned total_x;
 	unsigned total_y;
+#endif
 	unsigned bytes_per_bpp;
+#ifndef SPLASH_IMAGE_RLE
 	unsigned image_base;
-#if DISPLAY_TYPE_MIPI
-	char *image = NULL;
 #endif
 
 	if (!config) {
@@ -498,25 +499,30 @@ void display_default_image_on_screen(void)
 
 	fbcon_clear(); // clear screen with Black color
 
+#ifndef SPLASH_IMAGE_RLE
 	total_x = config->width;
 	total_y = config->height;
+#endif
 	bytes_per_bpp = ((config->bpp) / 8);
+#ifndef SPLASH_IMAGE_RLE
 	image_base = ((((total_y/2) - (SPLASH_IMAGE_HEIGHT / 2) - 1) *
 			(config->width)) + (total_x/2 - (SPLASH_IMAGE_WIDTH / 2)));
-
-#if DISPLAY_TYPE_MIPI
-#if ENABLE_WBC
-	image = (pm_appsbl_charging_in_progress() ? image_batt888 : imageBuffer_rgb888);
-#else
-	image = imageBuffer_rgb888;
 #endif
 
+#if DISPLAY_TYPE_MIPI
 	if (bytes_per_bpp == 3) {
+#ifndef SPLASH_IMAGE_RLE
 		for (i = 0; i < SPLASH_IMAGE_HEIGHT; i++) {
 			memcpy (config->base + ((image_base + (i * (config->width))) * bytes_per_bpp),
-			image + (i * SPLASH_IMAGE_WIDTH * bytes_per_bpp),
+			imageBuffer_rgb888 + (i * SPLASH_IMAGE_WIDTH * bytes_per_bpp),
 			SPLASH_IMAGE_WIDTH * bytes_per_bpp);
 		}
+#else
+		logo_img_header header;
+		header.width = SPLASH_IMAGE_WIDTH;
+		header.height = SPLASH_IMAGE_HEIGHT;
+		fbcon_extract_to_screen(&header, imageBuffer_rgb888);
+#endif
 	}
 	fbcon_flush();
 #if DISPLAY_MIPI_PANEL_NOVATEK_BLUE

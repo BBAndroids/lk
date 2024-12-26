@@ -53,15 +53,20 @@
 #include <platform/clock.h>
 #include <platform/gpio.h>
 #include <stdlib.h>
+#include <qpnp_led.h>
+#include <pm8x41_hw.h>
+#include <pm8x41_adc.h>
+#include <platform/bbry.h>
 
-#define HW_PLATFORM_8994_INTERPOSER    0x3
+#if PON_VIB_SUPPORT
+#include <vibrator.h>
+#define VIBRATE_TIME 250
+#endif
 
 extern int platform_is_8974();
 extern int platform_is_8974ac();
-extern  bool target_use_signed_kernel(void);
 static void set_sdc_power_ctrl();
 
-static unsigned int target_id;
 static uint32_t pmic_ver;
 
 #if MMC_SDHCI_SUPPORT
@@ -105,13 +110,15 @@ static uint32_t mmc_sdc_pwrctl_irq[] =
 void target_early_init(void)
 {
 #if WITH_DEBUG_UART
+	bbry_uart_on_jack(1);
+
 	uart_dm_init(1, 0, BLSP1_UART1_BASE);
 #endif
 }
 
 uint32_t target_hw_interposer()
 {
-	return board_hardware_subtype() == HW_PLATFORM_8994_INTERPOSER ? 1 : 0;
+	return 0;
 }
 
 /* Return 1 if vol_up pressed */
@@ -121,13 +128,6 @@ int target_volume_up()
 	uint8_t status = 0;
 	struct pm8x41_gpio gpio;
 
-	/* CDP vol_up seems to be always grounded. So gpio status is read as 0,
-	 * whether key is pressed or not.
-	 * Ignore volume_up key on CDP for now.
-	 */
-	if (board_hardware_id() == HW_PLATFORM_SURF)
-		return 0;
-
 	if (!first_time) {
 		/* Configure the GPIO */
 		gpio.direction = PM_GPIO_DIR_IN;
@@ -135,7 +135,7 @@ int target_volume_up()
 		gpio.pull      = PM_GPIO_PULL_UP_30;
 		gpio.vin_sel   = 2;
 
-		pm8x41_gpio_config(5, &gpio);
+		pm8x41_gpio_config(22, &gpio);
 
 		/* Wait for the pmic gpio config to take effect */
 		udelay(10000);
@@ -144,7 +144,7 @@ int target_volume_up()
 	}
 
 	/* Get status of P_GPIO_5 */
-	pm8x41_gpio_get(5, &status);
+	pm8x41_gpio_get(22, &status);
 
 	return !status; /* active low */
 }
@@ -152,11 +152,29 @@ int target_volume_up()
 /* Return 1 if vol_down pressed */
 uint32_t target_volume_down()
 {
-	/* Volume down button is tied in with RESIN on MSM8974. */
-	if (platform_is_8974() && (pmic_ver == PM8X41_VERSION_V2))
-		return pm8x41_v2_resin_status();
-	else
-		return pm8x41_resin_status();
+	static uint8_t first_time = 0;
+	uint8_t status = 0;
+	struct pm8x41_gpio gpio;
+
+	if (!first_time) {
+		/* Configure the GPIO */
+		gpio.direction = PM_GPIO_DIR_IN;
+		gpio.function  = 0;
+		gpio.pull      = PM_GPIO_PULL_UP_30;
+		gpio.vin_sel   = 2;
+
+		pm8x41_gpio_config(23, &gpio);
+
+		/* Wait for the pmic gpio config to take effect */
+		udelay(10000);
+
+		first_time = 1;
+	}
+
+	/* Get status of P_GPIO_5 */
+	pm8x41_gpio_get(23, &status);
+
+	return !status; /* active low */
 }
 
 static void target_keystatus()
@@ -210,25 +228,7 @@ crypto_engine_type board_ce_type(void)
 static void target_mmc_sdhci_init()
 {
 	struct mmc_config_data config = {0};
-	uint32_t soc_ver = 0;
-
-	soc_ver = board_soc_version();
-
-	/*
-	 * 8974 v1 fluid devices, have a hardware bug
-	 * which limits the bus width to 4 bit.
-	 */
-	switch(board_hardware_id())
-	{
-		case HW_PLATFORM_FLUID:
-			if (platform_is_8974() && BOARD_SOC_VERSION1(soc_ver))
-				config.bus_width = DATA_BUS_WIDTH_4BIT;
-			else
-				config.bus_width = DATA_BUS_WIDTH_8BIT;
-			break;
-		default:
-			config.bus_width = DATA_BUS_WIDTH_8BIT;
-	};
+	config.bus_width = DATA_BUS_WIDTH_8BIT;
 
 	/* Trying Slot 1*/
 	config.slot = 1;
@@ -303,25 +303,7 @@ static void target_mmc_mci_init()
  */
 void target_mmc_caps(struct mmc_host *host)
 {
-	uint32_t soc_ver = 0;
-
-	soc_ver = board_soc_version();
-
-	/*
-	 * 8974 v1 fluid devices, have a hardware bug
-	 * which limits the bus width to 4 bit.
-	 */
-	switch(board_hardware_id())
-	{
-		case HW_PLATFORM_FLUID:
-			if (platform_is_8974() && BOARD_SOC_VERSION1(soc_ver))
-				host->caps.bus_width = MMC_BOOT_BUS_WIDTH_4_BIT;
-			else
-				host->caps.bus_width = MMC_BOOT_BUS_WIDTH_8_BIT;
-			break;
-		default:
-			host->caps.bus_width = MMC_BOOT_BUS_WIDTH_8_BIT;
-	};
+	host->caps.bus_width = MMC_BOOT_BUS_WIDTH_8_BIT;
 
 	host->caps.ddr_mode = 1;
 	host->caps.hs200_mode = 1;
@@ -341,8 +323,29 @@ void target_init(void)
 
 	target_keystatus();
 
-	if (target_use_signed_kernel())
-		target_crypto_init_params();
+#if PON_VIB_SUPPORT
+	vib_timed_turn_on(VIBRATE_TIME);
+#endif
+
+	if (pm8x41_get_batt_voltage() < 3400000)
+	{
+		pm8xxx_enable_charging();
+		while (pm8x41_get_batt_voltage() < 3400000)
+		{
+			if (!pm8xxx_is_charger_present())
+				shutdown_device();
+
+			qpnp_led_set(0x80, 0, 0);
+			thread_sleep(1000);
+
+			qpnp_led_set(0x0, 0x80, 0);
+			thread_sleep(1000);
+
+			pm8x41_wd_reset_pet();
+		}
+		pm8xxx_disable_charging();
+		qpnp_led_set(0, 0, 0);
+	}
 
 	/*
 	 * Set drive strength & pull ctrl for
@@ -359,7 +362,7 @@ void target_init(void)
 
 unsigned board_machtype(void)
 {
-	return target_id;
+	return 0;
 }
 
 /* Do any target specific intialization needed before entering fastboot mode */
@@ -404,6 +407,7 @@ void target_fastboot_init(void)
 {
 	/* Set the BOOT_DONE flag in PM8921 */
 	pm8x41_set_boot_done();
+	analogix_usb_passthrough();
 
 #ifdef SSD_ENABLE
 	clock_ce_enable(SSD_CE_INSTANCE_1);
@@ -435,25 +439,8 @@ void target_detect(struct board_data *board)
 void target_baseband_detect(struct board_data *board)
 {
 	uint32_t platform;
-	uint32_t platform_subtype;
 
 	platform = board->platform;
-	platform_subtype = board->platform_subtype;
-
-	/*
-	 * Look for platform subtype if present, else
-	 * check for platform type to decide on the
-	 * baseband type
-	 */
-	switch(platform_subtype) {
-	case HW_PLATFORM_SUBTYPE_UNKNOWN:
-	case HW_PLATFORM_SUBTYPE_8974PRO_PM8084:
-	case HW_PLATFORM_8994_INTERPOSER:
-		break;
-	default:
-		dprintf(CRITICAL, "Platform Subtype : %u is not supported\n",platform_subtype);
-		ASSERT(0);
-	};
 
 	switch(platform) {
 	case MSM8974:
@@ -577,32 +564,6 @@ void target_usb_init(void)
 {
 	uint32_t val;
 
-	/* Enable secondary USB PHY on DragonBoard8074 */
-	if (board_hardware_id() == HW_PLATFORM_DRAGON) {
-		/* Route ChipIDea to use secondary USB HS port2 */
-		writel_relaxed(1, USB2_PHY_SEL);
-
-		/* Enable access to secondary PHY by clamping the low
-		* voltage interface between DVDD of the PHY and Vddcx
-		* (set bit16 (USB2_PHY_HS2_DIG_CLAMP_N_2) = 1) */
-		writel_relaxed(readl_relaxed(USB_OTG_HS_PHY_SEC_CTRL)
-				| 0x00010000, USB_OTG_HS_PHY_SEC_CTRL);
-
-		/* Perform power-on-reset of the PHY.
-		*  Delay values are arbitrary */
-		writel_relaxed(readl_relaxed(USB_OTG_HS_PHY_CTRL)|1,
-				USB_OTG_HS_PHY_CTRL);
-		thread_sleep(10);
-		writel_relaxed(readl_relaxed(USB_OTG_HS_PHY_CTRL) & 0xFFFFFFFE,
-				USB_OTG_HS_PHY_CTRL);
-		thread_sleep(10);
-
-		/* Enable HSUSB PHY port for ULPI interface,
-		* then configure related parameters within the PHY */
-		writel_relaxed(((readl_relaxed(USB_PORTSC) & 0xC0000000)
-				| 0x8c000004), USB_PORTSC);
-	}
-
 	if (target_needs_vbus_mimic())
 	{
 		/* Select and enable external configuration with USB PHY */
@@ -621,31 +582,11 @@ void target_usb_init(void)
 
 uint8_t target_panel_auto_detect_enabled()
 {
-	switch(board_hardware_id())
-	{
-		case HW_PLATFORM_SURF:
-		case HW_PLATFORM_MTP:
-		case HW_PLATFORM_FLUID:
-			return 1;
-			break;
-		default:
-			return 0;
-			break;
-	}
 	return 0;
 }
 
 uint8_t target_is_edp()
 {
-	switch(board_hardware_id())
-	{
-		case HW_PLATFORM_LIQUID:
-			return 1;
-			break;
-		default:
-			return 0;
-			break;
-	}
 	return 0;
 }
 
@@ -655,20 +596,7 @@ int target_cont_splash_screen()
 {
 	uint8_t splash_screen = 0;
 	if(!splash_override) {
-		switch(board_hardware_id())
-		{
-			case HW_PLATFORM_SURF:
-			case HW_PLATFORM_MTP:
-			case HW_PLATFORM_FLUID:
-			case HW_PLATFORM_DRAGON:
-			case HW_PLATFORM_LIQUID:
-				dprintf(SPEW, "Target_cont_splash=1\n");
-				splash_screen = 1;
-				break;
-			default:
-				dprintf(SPEW, "Target_cont_splash=0\n");
-				splash_screen = 0;
-		}
+		splash_screen = 1;
 	}
 	return splash_screen;
 }
@@ -680,12 +608,10 @@ void target_force_cont_splash_disable(uint8_t override)
 
 unsigned target_pause_for_battery_charge(void)
 {
+	uint8_t pon_reason = pm8x41_get_pon_reason();
 
-        /* This function will always return 0 to facilitate
-         * automated testing/reboot with usb connected.
-         * uncomment if this feature is needed */
-	/* if ((pon_reason == USB_CHG) || (pon_reason == DC_CHG))
-		return 1;*/
+	if ((pon_reason == USB_CHG) || (pon_reason == DC_CHG))
+		return 1;
 
 	return 0;
 }
@@ -727,32 +653,10 @@ void shutdown_device()
 
 static void set_sdc_power_ctrl()
 {
-	uint8_t tlmm_hdrv_clk = 0;
-	uint32_t platform_id = 0;
-
-	platform_id = board_platform_id();
-
-	switch(platform_id)
-	{
-		case MSM8274AA:
-		case MSM8274AB:
-		case MSM8674AA:
-		case MSM8674AB:
-		case MSM8974AA:
-		case MSM8974AB:
-			if (board_hardware_id() == HW_PLATFORM_MTP)
-				tlmm_hdrv_clk = TLMM_CUR_VAL_10MA;
-			else
-				tlmm_hdrv_clk = TLMM_CUR_VAL_16MA;
-			break;
-		default:
-			tlmm_hdrv_clk = TLMM_CUR_VAL_16MA;
-	};
-
 	/* Drive strength configs for sdc pins */
 	struct tlmm_cfgs sdc1_hdrv_cfg[] =
 	{
-		{ SDC1_CLK_HDRV_CTL_OFF,  tlmm_hdrv_clk, TLMM_HDRV_MASK },
+		{ SDC1_CLK_HDRV_CTL_OFF,  TLMM_CUR_VAL_16MA, TLMM_HDRV_MASK },
 		{ SDC1_CMD_HDRV_CTL_OFF,  TLMM_CUR_VAL_10MA, TLMM_HDRV_MASK },
 		{ SDC1_DATA_HDRV_CTL_OFF, TLMM_CUR_VAL_10MA, TLMM_HDRV_MASK },
 	};
@@ -783,7 +687,7 @@ static void set_sdc_power_ctrl()
 
 int emmc_recovery_init(void)
 {
-	return _emmc_recovery_init();
+	return 0;
 }
 
 void target_usb_stop(void)
@@ -797,19 +701,7 @@ void target_usb_stop(void)
 /* identify the usb controller to be used for the target */
 const char * target_usb_controller()
 {
-	switch(board_platform_id())
-	{
-		/* use dwc controller for PRO chips (with some exceptions) */
-		case MSM8974AA:
-		case MSM8974AB:
-		case MSM8974AC:
-			/* exceptions based on hardware id */
-			if (board_hardware_id() != HW_PLATFORM_DRAGON && !target_hw_interposer())
-				return "dwc";
-		/* fall through to default "ci" for anything that did'nt select "dwc" */
-		default:
-			return "ci";
-	}
+	return "ci";
 }
 
 /* UTMI MUX configuration to connect PHY to SNPS controller:

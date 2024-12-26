@@ -84,9 +84,10 @@
 #define PON_RESIN_N_RESET_S1_TIMER            0x844  /* bits 0:3  : S1_TIMER */
 #define PON_RESIN_N_RESET_S2_TIMER            0x845  /* bits 0:2  : S2_TIMER */
 #define PON_RESIN_N_RESET_S2_CTL              0x846  /* bit 7: S2_RESET_EN, bit 0:3 : RESET_TYPE  */
+#define PMIC_WD_RESET_S2_CTL2                 0x857
+#define PMIC_WD_RESET_PET                     0x858
 #define PON_PS_HOLD_RESET_CTL                 0x85A  /* bit 7: S2_RESET_EN, bit 0:3 : RESET_TYPE  */
 #define PON_PS_HOLD_RESET_CTL2                0x85B
-#define PMIC_WD_RESET_S2_CTL2                 0x857
 
 /* PON Peripheral register bit values */
 #define RESIN_ON_INT_BIT                      1
@@ -143,13 +144,22 @@ uint8_t pm8x41_reg_read(uint32_t addr);
 #define LNBB_CLK_EN_BIT                      7
 
 /* SMBB registers */
+#define PM8XXX_CHG_OPTION                     0x1008
+#define PM8XXX_VBAT_IN_TSTS                   0x1010
+#define PM8XXX_IBAT_MAX                       0x1044
+#define PM8XXX_CHG_CTRL                       0x1049
 #define PM8XXX_IBAT_ATC_A                     0x1054
 #define PM8XXX_VBAT_DET                       0x105D
 #define PM8XXX_SEC_ACCESS                     0x10D0
+#define PM8XXX_TRKL_CHG_TEST                  0x10E2
 #define PM8XXX_COMP_OVR0                      0x10ED
 #define PM8XXX_VCP                            0x1247
-#define PM8XXX_TRKL_CHG_TEST                  0x10E2
-#define PM8XXX_VBAT_IN_TSTS                   0x1010
+#define PM8XXX_USB_CHG_PTH_STS                0x1309
+#define PM8XXX_IUSB_MAX_EN                    0x1343
+#define PM8XXX_IUSB_MAX                       0x1344
+#define PM8XXX_FLCB_IUSB_MAX_LIM              0x1351
+#define PM8XXX_DC_CHG_PTH_STS                 0x140A
+#define PM8XXX_BOOT_DONE                      0x1642
 
 /* Macros for broken battery */
 #define VBAT_DET_LO_4_30V                     0x35
@@ -168,6 +178,12 @@ uint8_t pm8x41_reg_read(uint32_t addr);
 #define PMI8994_CHGR_TRIM_OPTIONS_7_0         0x216F6
 #define INPUT_MISSING_POLLER_EN               BIT(3)
 
+void pm8x41_wd_reset_pet();
+int pm8xxx_is_charger_present(void);
+int pm8xxx_is_charging(void);
+void pm8xxx_enable_charging(void);
+void pm8xxx_disable_charging(void);
+void pm8xxx_set_max_charge_amperage(int rate);
 int pm8xxx_is_battery_broken(void);
 bool pmi8994_battery_broken(void);
 

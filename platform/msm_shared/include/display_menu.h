@@ -35,15 +35,7 @@
 #define SELECT_OPTION_MAX	5
 
 enum display_menu_type {
-	DISPLAY_MENU_YELLOW = 0,
-	DISPLAY_MENU_ORANGE,
-	DISPLAY_MENU_RED,
-	DISPLAY_MENU_MORE_OPTION,
-	DISPLAY_MENU_UNLOCK,
 	DISPLAY_MENU_FASTBOOT,
-	DISPLAY_MENU_UNLOCK_CRITICAL,
-	DISPLAY_MENU_LOGGING,
-	DISPLAY_MENU_EIO,
 };
 
 struct menu_info {
@@ -65,13 +57,8 @@ struct select_msg_info {
 };
 
 void wait_for_users_action(void);
-void display_unlock_menu_renew(struct select_msg_info *msg_info, int type);
-void display_bootverify_menu_renew(struct select_msg_info *msg_info, int type);
-void display_bootverify_option_menu_renew(struct select_msg_info *msg_info);
 void display_fastboot_menu_renew(struct select_msg_info *fastboot_msg_info);
-void display_bootverify_menu(int type);
 void display_fastboot_menu();
-void display_unlock_menu(int type);
 void msg_lock_init();
 void exit_menu_keys_detection();
 #endif				/* __PLATFORM_MSM_SHARED_DISPLAY_MENU_H */
