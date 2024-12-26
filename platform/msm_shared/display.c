@@ -39,6 +39,7 @@
 #ifdef DISPLAY_TYPE_MDSS
 #include <target/display.h>
 #endif
+#include <platform/timer.h>
 
 static struct msm_fb_panel_data *panel;
 
