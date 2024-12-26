@@ -116,11 +116,6 @@ void target_early_init(void)
 #endif
 }
 
-uint32_t target_hw_interposer()
-{
-	return 0;
-}
-
 /* Return 1 if vol_up pressed */
 int target_volume_up()
 {
@@ -311,6 +306,13 @@ void target_mmc_caps(struct mmc_host *host)
 }
 #endif
 
+void disable_afp_wdog(void)
+{
+	dprintf(CRITICAL, "Disabling AFP WDOG!!\n");
+	pm8x41_reg_write(0x16D0, 0xA5);
+	pm8x41_reg_write(0x1645, 0);
+	pm8x41_reg_write(0x16D0, 0);
+}
 
 void target_init(void)
 {
@@ -326,6 +328,8 @@ void target_init(void)
 #if PON_VIB_SUPPORT
 	vib_timed_turn_on(VIBRATE_TIME);
 #endif
+
+	disable_afp_wdog();
 
 	if (pm8x41_get_batt_voltage() < 3400000)
 	{

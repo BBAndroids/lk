@@ -74,7 +74,6 @@ void target_usb_phy_sec_reset(void);
 void target_usb_phy_mux_configure(void);
 target_usb_iface_t * target_usb30_init();
 bool target_is_cdp_qvga();
-uint32_t target_hw_interposer();
 uint32_t target_override_pll();
 uint32_t target_ddr_cfg_val();
 void target_usb_init(void);

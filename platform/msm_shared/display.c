@@ -277,16 +277,11 @@ static struct mipi_dsi_cmd off_on_command[] = {
 static void msm_display_update(void)
 {
 	struct msm_panel_info *pinfo;
-	struct mipi_panel_info *mipi;
 
 	pinfo = &(panel->panel_info);
-	mipi = &(pinfo->mipi);
-
-	mdss_dsi_cmds_tx(mipi, off_on_command,
-		sizeof(off_on_command) / sizeof(off_on_command[0]),
-		mipi->broadcast);
 
 	mdp_dma_on(pinfo);
+	mdelay(20);
 }
 
 int msm_display_init(struct msm_fb_panel_data *pdata)
