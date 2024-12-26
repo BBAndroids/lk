@@ -207,6 +207,7 @@
 #define USB_HS_SYSTEM_CFG_RCGR      (CLK_CTL_BASE + 0x494)
 
 /* I2C */
+#define BLSP1_QUP3_I2C_APPS_CBCR    (CLK_CTL_BASE + 0x748)
 #define BLSP2_QUP5_I2C_APPS_CBCR    (CLK_CTL_BASE + 0xB88)
 
 #define BLSP_QUP_BASE(blsp_id, qup_id)   ((blsp_id == 1) ? \
