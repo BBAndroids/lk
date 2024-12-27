@@ -103,7 +103,6 @@ static void update_device_status(struct select_msg_info* msg_info, int reason)
 	fbcon_clear();
 	switch (reason) {
 		case RECOVER:
-			//reboot_device(RECOVERY_MODE);
 			display_image_on_screen();
 
 			/* Continue boot, no need to detect the keys'status */

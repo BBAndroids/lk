@@ -2930,9 +2930,16 @@ void cmd_set_active(const char *arg, void *data, unsigned sz)
 
 void cmd_reboot_bootloader(const char *arg, void *data, unsigned sz)
 {
-	dprintf(INFO, "rebooting the device\n");
+	dprintf(INFO, "rebooting the device to bootloader\n");
 	fastboot_okay("");
 	reboot_device(FASTBOOT_MODE);
+}
+
+void cmd_reboot_recovery(const char *arg, void *data, unsigned sz)
+{
+	dprintf(INFO, "rebooting the device to recovery\n");
+	fastboot_okay("");
+	reboot_device(RECOVERY_MODE);
 }
 
 void cmd_oem_enable_charger_screen(const char *arg, void *data, unsigned size)
@@ -2974,6 +2981,22 @@ void cmd_oem_off_mode_charger(const char *arg, void *data, unsigned size)
 	snprintf(charger_screen_enabled, MAX_RSP_SIZE, "%d",
 		device.charger_screen_enabled);
 
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
+void cmd_oem_enable_jack_uart(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Enabling jack uart\n");
+	device.jack_uart_enabled = 1;
+	write_device_info(&device);
+	fastboot_okay("");
+}
+
+void cmd_oem_disable_jack_uart(const char *arg, void *data, unsigned size)
+{
+	dprintf(INFO, "Disabling jack uart\n");
+	device.jack_uart_enabled = 0;
 	write_device_info(&device);
 	fastboot_okay("");
 }
@@ -3397,6 +3420,7 @@ void aboot_fastboot_register_commands(void)
 		{"continue", cmd_continue},
 		{"reboot", cmd_reboot},
 		{"reboot-bootloader", cmd_reboot_bootloader},
+		{"reboot-recovery", cmd_reboot_recovery},
 		{"oem device-info", cmd_oem_devinfo},
 		{"oem bootlog", cmd_oem_bootlog},
 		{"preflash", cmd_preflash},
@@ -3405,6 +3429,8 @@ void aboot_fastboot_register_commands(void)
 		{"oem off-mode-charge", cmd_oem_off_mode_charger},
 		{"oem select-display-panel", cmd_oem_select_display_panel},
 		{"set_active",cmd_set_active},
+		{"oem enable-jack-uart", cmd_oem_enable_jack_uart},
+		{"oem disable-jack-uart", cmd_oem_disable_jack_uart},
 	};
 
 	int fastboot_cmds_count = sizeof(cmd_list)/sizeof(cmd_list[0]);
