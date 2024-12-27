@@ -331,10 +331,10 @@ void target_init(void)
 
 	disable_afp_wdog();
 
-	if (pm8x41_get_batt_voltage() < 3400000)
+	if (!target_battery_soc_ok())
 	{
 		pm8xxx_enable_charging();
-		while (pm8x41_get_batt_voltage() < 3400000)
+		while (!target_battery_soc_ok())
 		{
 			if (!pm8xxx_is_charger_present())
 				shutdown_device();
@@ -342,7 +342,7 @@ void target_init(void)
 			qpnp_led_set(0x80, 0, 0);
 			thread_sleep(1000);
 
-			qpnp_led_set(0x0, 0x80, 0);
+			qpnp_led_set(0x0, 0, 0);
 			thread_sleep(1000);
 
 			pm8x41_wd_reset_pet();
@@ -535,7 +535,7 @@ void reboot_device(unsigned reboot_reason)
 	else
 		writel(reboot_reason, RESTART_REASON_ADDR_V2);
 
-	if(reboot_reason == FASTBOOT_MODE)
+	if(reboot_reason != 0)
 		reset_type = PON_PSHOLD_WARM_RESET;
 	else
 		reset_type = PON_PSHOLD_HARD_RESET;

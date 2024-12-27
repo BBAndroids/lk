@@ -59,3 +59,6 @@ endif
 ifeq ($(ENABLE_USB30_SUPPORT),1)
 DEFINES += USB30_SUPPORT=1
 endif
+
+#enable battery voltage check
+DEFINES += CHECK_BAT_VOLTAGE=1
