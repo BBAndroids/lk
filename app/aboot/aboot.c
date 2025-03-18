@@ -188,6 +188,7 @@ static const char *bbry_rev = " androidboot.binfo.rev=";
 static const char *bbry_name = " androidboot.binfo.name=";
 static const char *bbry_product = " androidboot.binfo.product=";
 static const char *bbry_variant = " androidboot.binfo.variant=";
+static const char *bbry_model_unknown = " androidboot.binfo.model=Unknown";
 static const char *bbry_model_wolverine = " androidboot.binfo.model=Passport";
 static const char *bbry_model_oslo = " androidboot.binfo.model=\"Passport Silver Edition\"";
 static const char *bbry_model_num_unknown = " androidboot.binfo.model_num=Unknown";
@@ -493,10 +494,14 @@ unsigned char *update_cmdline(const char * cmdline)
 		} else {
 			cmdline_len += strlen(bbry_model_num_unknown);
 		}
-	} else {
+	} else if (strcmp(bbry_get_product(), "oslo") == 0) {
 		cmdline_len += strlen(bbry_model_oslo);
 
 		cmdline_len += strlen(bbry_model_num_sqw100_4);
+	} else {
+		cmdline_len += strlen(bbry_model_unknown);
+
+		cmdline_len += strlen(bbry_model_num_unknown);
 	}
 
 	cmdline_len += strlen(bbry_bsis_type);
@@ -758,7 +763,7 @@ unsigned char *update_cmdline(const char * cmdline)
 				src = bbry_model_num_unknown;
 				while ((*dst++ = *src++));
 			}
-		} else {
+		} else if (strcmp(bbry_get_product(), "oslo") == 0) {
 			if (have_cmdline)
 			--dst;
 			src = bbry_model_oslo;
@@ -766,6 +771,15 @@ unsigned char *update_cmdline(const char * cmdline)
 
 			if (have_cmdline) --dst;
 			src = bbry_model_num_sqw100_4;
+			while ((*dst++ = *src++));
+		} else {
+			if (have_cmdline)
+			--dst;
+			src = bbry_model_unknown;
+			while ((*dst++ = *src++));
+
+			if (have_cmdline) --dst;
+			src = bbry_model_num_unknown;
 			while ((*dst++ = *src++));
 		}
 
@@ -3404,7 +3418,14 @@ void publish_getvar_multislot_vars()
 
 void get_product_name(unsigned char *buf)
 {
-	snprintf((char*)buf, MAX_RSP_SIZE, "Blackberry Passport");
+	if (strcmp(bbry_get_product(), "wolverine") == 0)
+		snprintf((char *)buf, MAX_RSP_SIZE, "Blackberry Passport");
+	else if (strcmp(bbry_get_product(), "oslo") == 0)
+		snprintf((char *)buf, MAX_RSP_SIZE, "Blackberry Passport Silver Edition");
+	else if (strcmp(bbry_get_product(), "mockingbird") == 0)
+		snprintf((char *)buf, MAX_RSP_SIZE, "Blackberry \"Ontario\"");
+	else
+		snprintf((char *)buf, MAX_RSP_SIZE, "Unknown");
 	return;
 }
 

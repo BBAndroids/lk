@@ -49,20 +49,25 @@
 #include "include/panel.h"
 #include "include/display_resource.h"
 
-static struct msm_fb_panel_data panel;
-static uint8_t edp_enable;
-
 #define HFPLL_LDO_ID 12
 
 /*---------------------------------------------------------------------------*/
 /* GPIO configuration                                                        */
 /*---------------------------------------------------------------------------*/
-static struct gpio_pin reset_gpio = {
+static struct gpio_pin reset_gpio_wolverine = {
   "msmgpio", 46, 2, 1, 0, 1
 };
 
-static struct gpio_pin enable_gpio = {
+static struct gpio_pin reset_gpio_mockingbird = {
+  "pm8941_gpios", 19, 2, 1, 0, 1
+};
+
+static struct gpio_pin enable_gpio_wolverine = {
   "msmgpio", 8, 3, 1, 0, 1
+};
+
+static struct gpio_pin enable_gpio_mockingbird = {
+  "msmgpio", 0, 3, 1, 0, 1
 };
 
 static struct gpio_pin pwm_gpio = {
@@ -72,8 +77,14 @@ static struct gpio_pin pwm_gpio = {
 /*---------------------------------------------------------------------------*/
 /* LDO configuration                                                         */
 /*---------------------------------------------------------------------------*/
-static struct ldo_entry ldo_entry_array[] = {
+static struct ldo_entry ldo_entry_array_wolverine[] = {
   { "vdd", 22, 0, 2850000, 100000, 100, 0, 20, 0, 0},
+  { "vddio", 12, 0, 1800000, 100000, 100, 0, 20, 0, 0},
+  { "vdda", 2, 1, 1200000, 100000, 100, 0, 0, 0, 0},
+};
+
+static struct ldo_entry ldo_entry_array_mockingbird[] = {
+  { "vdd", 22, 0, 3000000, 100000, 100, 0, 20, 0, 0},
   { "vddio", 12, 0, 1800000, 100000, 100, 0, 20, 0, 0},
   { "vdda", 2, 1, 1200000, 100000, 100, 0, 0, 0, 0},
 };
@@ -533,7 +544,23 @@ int target_dsi_phy_config(struct mdss_dsi_phy_ctrl *phy_db)
 int target_panel_reset(uint8_t enable, struct panel_reset_sequence *resetseq,
 					struct msm_panel_info *pinfo)
 {
-	uint32_t rst_gpio = reset_gpio.pin_id;
+	struct gpio_pin *reset_gpio;
+	struct gpio_pin *enable_gpio;
+
+	if (strcmp(bbry_get_product(), "wolverine") == 0 || strcmp(bbry_get_product(), "oslo") == 0)
+	{
+		reset_gpio = &reset_gpio_wolverine;
+		enable_gpio = &enable_gpio_wolverine;
+	}
+	else if (strcmp(bbry_get_product(), "mockingbird") == 0)
+	{
+		reset_gpio = &reset_gpio_mockingbird;
+		enable_gpio = &enable_gpio_mockingbird;
+	}
+	else
+		return ERR_NOT_SUPPORTED;
+
+	uint32_t rst_gpio = reset_gpio->pin_id;
 
 	struct pm8x41_gpio resetgpio_param = {
 		.direction = PM_GPIO_DIR_OUT,
@@ -546,11 +573,11 @@ int target_panel_reset(uint8_t enable, struct panel_reset_sequence *resetseq,
 
 	pm8x41_gpio_config(rst_gpio, &resetgpio_param);
 	if (enable) {
-		gpio_tlmm_config(enable_gpio.pin_id, 0,
-			enable_gpio.pin_direction, enable_gpio.pin_pull,
-			enable_gpio.pin_strength, enable_gpio.pin_state);
+		gpio_tlmm_config(enable_gpio->pin_id, 0,
+			enable_gpio->pin_direction, enable_gpio->pin_pull,
+			enable_gpio->pin_strength, enable_gpio->pin_state);
 
-		gpio_set(enable_gpio.pin_id, resetseq->pin_direction);
+		gpio_set(enable_gpio->pin_id, resetseq->pin_direction);
 		pm8x41_gpio_set(rst_gpio, resetseq->pin_state[0]);
 		mdelay(resetseq->sleep[0]);
 		pm8x41_gpio_set(rst_gpio, resetseq->pin_state[1]);
@@ -561,13 +588,22 @@ int target_panel_reset(uint8_t enable, struct panel_reset_sequence *resetseq,
 		resetgpio_param.out_strength = PM_GPIO_OUT_DRIVE_LOW;
 		pm8x41_gpio_config(rst_gpio, &resetgpio_param);
 		pm8x41_gpio_set(rst_gpio, PM_GPIO_FUNC_LOW);
-		gpio_set(enable_gpio.pin_id, resetseq->pin_direction);
+		gpio_set(enable_gpio->pin_id, resetseq->pin_direction);
 	}
 	return NO_ERROR;
 }
 
 int target_ldo_ctrl(uint8_t enable, struct msm_panel_info *pinfo)
 {
+	struct ldo_entry *ldo_entry_array;
+
+	if (strcmp(bbry_get_product(), "wolverine") == 0 || strcmp(bbry_get_product(), "oslo") == 0)
+		ldo_entry_array = ldo_entry_array_wolverine;
+	else if (strcmp(bbry_get_product(), "mockingbird") == 0)
+		ldo_entry_array = ldo_entry_array_mockingbird;
+	else
+		return ERR_NOT_SUPPORTED;
+
 	uint32_t ldocounter = 0;
 	uint32_t pm8x41_ldo_base = 0x13F00;
 

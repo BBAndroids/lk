@@ -43,6 +43,7 @@
 /* GCDB Panel Database                                                       */
 /*---------------------------------------------------------------------------*/
 #include "include/panel_panorama_1440p_cmd.h"
+#include "include/panel_spadina_1080p_cmd.h"
 
 int oem_panel_rotation()
 {
@@ -77,55 +78,82 @@ int oem_panel_select(const char *panel_name, struct panel_struct *panelstruct,
 			struct msm_panel_info *pinfo,
 			struct mdss_dsi_phy_ctrl *phy_db)
 {
-	panelstruct->paneldata    = &panorama_1440p_cmd_panel_data;
-	panelstruct->panelres     = &panorama_1440p_cmd_panel_res;
-	panelstruct->color        = &panorama_1440p_cmd_color;
-	panelstruct->videopanel   = &panorama_1440p_cmd_video_panel;
-	panelstruct->commandpanel = &panorama_1440p_cmd_command_panel;
-	panelstruct->state        = &panorama_1440p_cmd_state;
-	panelstruct->laneconfig   = &panorama_1440p_cmd_lane_config;
-	panelstruct->paneltiminginfo
-		= &panorama_1440p_cmd_timing_info;
-	panelstruct->panelresetseq
-				 = &panorama_1440p_cmd_panel_reset_seq;
+	if (strcmp(bbry_get_product(), "wolverine") == 0 || strcmp(bbry_get_product(), "oslo") == 0) {
+		panelstruct->paneldata    = &panorama_1440p_cmd_panel_data;
+		panelstruct->panelres     = &panorama_1440p_cmd_panel_res;
+		panelstruct->color        = &panorama_1440p_cmd_color;
+		panelstruct->videopanel   = &panorama_1440p_cmd_video_panel;
+		panelstruct->commandpanel = &panorama_1440p_cmd_command_panel;
+		panelstruct->state        = &panorama_1440p_cmd_state;
+		panelstruct->laneconfig   = &panorama_1440p_cmd_lane_config;
+		panelstruct->paneltiminginfo
+			= &panorama_1440p_cmd_timing_info;
+		panelstruct->panelresetseq
+					= &panorama_1440p_cmd_panel_reset_seq;
 
-	if (strcmp(bbry_get_product(), "wolverine") == 0)
-	{
-		if (strcmp(bbry_get_variant(), "wichita") == 0)
+		if (strcmp(bbry_get_product(), "wolverine") == 0)
 		{
-			panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_samanta_v2;
+			if (strcmp(bbry_get_variant(), "wichita") == 0)
+			{
+				panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_samanta_v2;
+			}
+			else
+			{
+				int board_rev = bbry_get_rev();
+				if (board_rev <= 3) {
+					panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_samanta_v1;
+				} else if (board_rev == 4) {
+					int device_variant = bbry_get_device_variant();
+					if (device_variant == -1)
+						panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_samanta_v2;
+					else if (device_variant != 41)
+						panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_samanta_v1;
+					else
+						panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_wled;
+				} else
+					panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_wled;
+			}
 		}
 		else
-		{
-			int board_rev = bbry_get_rev();
-			if (board_rev <= 3) {
-				panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_samanta_v1;
-			} else if (board_rev == 4) {
-				int device_variant = bbry_get_device_variant();
-				if (device_variant == -1)
-					panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_samanta_v2;
-				else if (device_variant != 41)
-					panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_samanta_v1;
-				else
-					panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_wled;
-			} else
-				panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_wled;
-		}
-	}
-	else
-		panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_wled;
+			panelstruct->backlightinfo = &panorama_1440p_cmd_backlight_wled;
 
-	pinfo->mipi.panel_on_cmds
-		= panorama_1440p_cmd_on_command;
-	pinfo->mipi.num_of_panel_on_cmds
-		= PANORAMA_1440P_CMD_ON_COMMAND;
-	pinfo->mipi.panel_off_cmds
-		= panorama_1440p_cmd_off_command;
-	pinfo->mipi.num_of_panel_off_cmds
-		= PANORAMA_1440P_CMD_OFF_COMMAND;
-	memcpy(phy_db->timing,
-		panorama_1440p_cmd_timings, TIMING_SIZE);
-	pinfo->mipi.signature = PANORAMA_1440P_CMD_SIGNATURE;
+		pinfo->mipi.panel_on_cmds
+			= panorama_1440p_cmd_on_command;
+		pinfo->mipi.num_of_panel_on_cmds
+			= PANORAMA_1440P_CMD_ON_COMMAND;
+		pinfo->mipi.panel_off_cmds
+			= panorama_1440p_cmd_off_command;
+		pinfo->mipi.num_of_panel_off_cmds
+			= PANORAMA_1440P_CMD_OFF_COMMAND;
+		memcpy(phy_db->timing,
+			panorama_1440p_cmd_timings, TIMING_SIZE);
+		pinfo->mipi.signature = PANORAMA_1440P_CMD_SIGNATURE;
+	} else if (strcmp(bbry_get_product(), "mockingbird") == 0) {
+		panelstruct->paneldata    = &spadina_1080p_cmd_panel_data;
+		panelstruct->panelres     = &spadina_1080p_cmd_panel_res;
+		panelstruct->color        = &spadina_1080p_cmd_color;
+		panelstruct->videopanel   = &spadina_1080p_cmd_video_panel;
+		panelstruct->commandpanel = &spadina_1080p_cmd_command_panel;
+		panelstruct->state        = &spadina_1080p_cmd_state;
+		panelstruct->laneconfig   = &spadina_1080p_cmd_lane_config;
+		panelstruct->paneltiminginfo
+			= &spadina_1080p_cmd_timing_info;
+		panelstruct->panelresetseq
+					= &spadina_1080p_cmd_panel_reset_seq;
+		panelstruct->backlightinfo = &spadina_1080p_cmd_backlight;
+
+		pinfo->mipi.panel_on_cmds
+			= spadina_1080p_cmd_on_command;
+		pinfo->mipi.num_of_panel_on_cmds
+			= SPADINA_1080P_CMD_ON_COMMAND;
+		pinfo->mipi.panel_off_cmds
+			= spadina_1080p_cmd_off_command;
+		pinfo->mipi.num_of_panel_off_cmds
+			= SPADINA_1080P_CMD_OFF_COMMAND;
+		memcpy(phy_db->timing,
+			spadina_1080p_cmd_timings, TIMING_SIZE);
+		pinfo->mipi.signature = SPADINA_1080P_CMD_SIGNATURE;
+	}
 
 	return PANEL_TYPE_DSI;
 }

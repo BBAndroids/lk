@@ -72,7 +72,7 @@ static struct udc_device surf_udc_device = {
 	.product_id   = 0x8030,
 	.version_id   = 0x0242,
 	.manufacturer = "BlackBerry",
-	.product      = "Oslo",
+	.product      = "W-Series",
 };
 
 static struct udc_gadget fastboot_gadget = {

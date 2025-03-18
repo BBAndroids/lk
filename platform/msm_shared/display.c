@@ -267,14 +267,6 @@ msm_display_on_out:
 	return ret;
 }
 
-static char cmdoff_cmd0[] = { 0x28, 0x00, 0x05, 0x80 };
-static char cmdon_cmd0[] = { 0x29, 0x00, 0x05, 0x80 };
-
-static struct mipi_dsi_cmd off_on_command[] = {
-	{ 0x4, cmdoff_cmd0, 0},
-	{ 0x4, cmdon_cmd0, 10},
-};
-
 static void msm_display_update(void)
 {
 	struct msm_panel_info *pinfo;
