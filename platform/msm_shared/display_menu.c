@@ -192,13 +192,13 @@ void display_fastboot_menu_renew(struct select_msg_info *fastboot_msg_info)
 	snprintf(msg, sizeof(msg), "Name: - %s\n", msg_buf);
 	display_fbcon_menu_message(msg, FBCON_COMMON_MSG, common_factor);
 
-	char *product = bbry_hwi_get_entry("product", 0);
+	char *product = bbry_get_product();
 	if (product) {
 		snprintf(msg, sizeof(msg), "Codename: %s\n", product);
 		display_fbcon_menu_message(msg, FBCON_COMMON_MSG, common_factor);
 	}
 
-	char *variant = bbry_hwi_get_entry("variant", 0);
+	char *variant = bbry_get_variant();
 	if (variant) {
 		snprintf(msg, sizeof(msg), "Variant: %s\n", variant);
 		display_fbcon_menu_message(msg, FBCON_COMMON_MSG, common_factor);
