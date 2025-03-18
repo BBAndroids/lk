@@ -54,7 +54,7 @@ static struct panel_config panorama_1440p_cmd_panel_data = {
 /* Panel resolution                                                          */
 /*---------------------------------------------------------------------------*/
 static struct panel_resolution panorama_1440p_cmd_panel_res = {
-  1440, 1440, 4, 30, 125, 0, 16, 16, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	1440, 1440, 125, 30, 4, 0, 30, 16, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
 /*---------------------------------------------------------------------------*/
@@ -68,81 +68,71 @@ static struct color_info panorama_1440p_cmd_color = {
 /* Panel Command information                                                 */
 /*---------------------------------------------------------------------------*/
 static char panorama_1440p_cmd_on_cmd0[] = {
- 2, 0, 0x39, 0xC0, 0x53, 0x2C};
-
+  0x02, 0x00, 0x39, 0xC0, 0x53, 0x2C
+};
 
 static char panorama_1440p_cmd_on_cmd1[] = {
- 5, 0, 0x39, 0xC0, 0x2A, 0, 0, 5, 0x9F};
-
+  0x05, 0x00, 0x39, 0xC0, 0x2A, 0x00, 0x00, 0x05, 0x9F
+};
 
 static char panorama_1440p_cmd_on_cmd2[] = {
- 5, 0, 0x39, 0xC0, 0x2B, 0, 0, 5, 0x9F};
-
+  0x05, 0x00, 0x39, 0xC0, 0x2B, 0x00, 0x00, 0x05, 0x9F
+};
 
 static char panorama_1440p_cmd_on_cmd3[] = {
- 2, 0, 0x39, 0xC0, 0x35, 0};
-
+  0x02, 0x00, 0x39, 0xC0, 0x36, 0x00
+};
 
 static char panorama_1440p_cmd_on_cmd4[] = {
-  2, 0, 0x39, 0xC0, 0x36, 0};
-
+  0x02, 0x00, 0x39, 0xC0, 0x3A, 0x77
+};
 
 static char panorama_1440p_cmd_on_cmd5[] = {
-2, 0, 0x39, 0xC0, 0x3A, 0x77
- };
-
+  0x02, 0x00, 0x39, 0xC0, 0x51, 0xFF
+};
 
 static char panorama_1440p_cmd_on_cmd6[] = {
-  2, 0, 0x39, 0xC0, 0x51, 0xFF};
-
+  0x02, 0x00, 0x39, 0xC0, 0x55, 0x00
+};
 
 static char panorama_1440p_cmd_on_cmd7[] = {
- 2, 0, 0x39, 0xC0, 0x55, 0};
-
+  0x02, 0x00, 0x39, 0xC0, 0x5E, 0x00
+};
 
 static char panorama_1440p_cmd_on_cmd8[] = {
- 2, 0, 0x39, 0xC0, 0x5E, 0};
-
+  0x11, 0x00, 0x05, 0x80
+};
 
 static char panorama_1440p_cmd_on_cmd9[] = {
-0x11, 0x00, 0x05, 0x80  };
-
-
-static char panorama_1440p_cmd_on_cmd10[] = {
-0x29, 0x00, 0x05, 0x80 };
-
-
-
+  0x29, 0x00, 0x05, 0x80
+};
 
 static struct mipi_dsi_cmd panorama_1440p_cmd_on_command[] = {
-{ 0x6 , panorama_1440p_cmd_on_cmd0 , 10},
-{ 0x9 , panorama_1440p_cmd_on_cmd1 , 10},
-{ 0x9 , panorama_1440p_cmd_on_cmd2 , 10},
-{ 0x6 , panorama_1440p_cmd_on_cmd3 , 10},
-{ 0x6 , panorama_1440p_cmd_on_cmd4 , 10},
-{ 0x6 , panorama_1440p_cmd_on_cmd5 , 10},
-{ 0x6 , panorama_1440p_cmd_on_cmd6 , 10},
-{ 0x6 , panorama_1440p_cmd_on_cmd7 , 10},
-{ 0x6 , panorama_1440p_cmd_on_cmd8 , 10},
-{ 0x4 , panorama_1440p_cmd_on_cmd9 , 120},
-{ 0x4 , panorama_1440p_cmd_on_cmd10 , 10},
+  { 0x6 , panorama_1440p_cmd_on_cmd0 , 10},
+  { 0x9 , panorama_1440p_cmd_on_cmd1 , 10},
+  { 0x9 , panorama_1440p_cmd_on_cmd2 , 10},
+  { 0x6 , panorama_1440p_cmd_on_cmd3 , 10},
+  { 0x6 , panorama_1440p_cmd_on_cmd4 , 10},
+  { 0x6 , panorama_1440p_cmd_on_cmd5 , 10},
+  { 0x6 , panorama_1440p_cmd_on_cmd6 , 10},
+  { 0x6 , panorama_1440p_cmd_on_cmd7 , 10},
+  { 0x4 , panorama_1440p_cmd_on_cmd8 , 120},
+  { 0x4 , panorama_1440p_cmd_on_cmd9 , 10},
 };
-#define PANORAMA_1440P_CMD_ON_COMMAND 11
+#define PANORAMA_1440P_CMD_ON_COMMAND 10
 
 
 static char panorama_1440p_cmdoff_cmd0[] = {
-0x28, 0x00, 0x05, 0x80 };
-
+  0x28, 0x00, 0x05, 0x80
+};
 
 static char panorama_1440p_cmdoff_cmd1[] = {
-0x10, 0x00, 0x05, 0x80 };
-
-
-
+  0x10, 0x00, 0x05, 0x80
+};
 
 static struct mipi_dsi_cmd panorama_1440p_cmd_off_command[] = {
-{ 0x4 , panorama_1440p_cmdoff_cmd0},
-{ 0x4 , panorama_1440p_cmdoff_cmd1}
+  { 0x4 , panorama_1440p_cmdoff_cmd0},
+  { 0x4 , panorama_1440p_cmdoff_cmd1}
 };
 #define PANORAMA_1440P_CMD_OFF_COMMAND 2
 
@@ -156,7 +146,7 @@ static struct command_state panorama_1440p_cmd_state = {
 /*---------------------------------------------------------------------------*/
 
 static struct commandpanel_info panorama_1440p_cmd_command_panel = {
-  1, 1, 1, 0, 0, 0x2c, 0, 0, 0, 1, 0, 0
+  1, 1, 1, 0, 0, 44, 0, 0, 0, 1, 0, 0
 };
 
 /*---------------------------------------------------------------------------*/
@@ -172,7 +162,7 @@ static struct videopanel_info panorama_1440p_cmd_video_panel = {
 /*---------------------------------------------------------------------------*/
 
 static struct lane_configuration panorama_1440p_cmd_lane_config = {
-  4, 0, 1, 1, 1, 1, 0
+  4, 0, 1, 1, 1, 1
 };
 
 
@@ -180,7 +170,7 @@ static struct lane_configuration panorama_1440p_cmd_lane_config = {
 /* Panel Timing                                                              */
 /*---------------------------------------------------------------------------*/
 const uint32_t panorama_1440p_cmd_timings[] = {
-  0xe2, 0x36, 0x24, 0x00, 0x66, 0x68, 0x2a, 0x38,  0x2a, 0x03, 0x04, 0x00
+  0xe7, 0x39, 0x27, 0x00, 0x6a, 0x6d, 0x2c, 0x3c, 0x2d, 0x03, 0x04, 0xa0
 };
 
 
@@ -196,7 +186,7 @@ static struct panel_timing panorama_1440p_cmd_timing_info = {
 };
 
 static struct panel_reset_sequence panorama_1440p_cmd_panel_reset_seq = {
-{ 1, 0, 1, }, { 20, 2, 20, }, 2
+  { 1, 0, 1, }, { 20, 2, 20, }, 2
 };
 
 /*---------------------------------------------------------------------------*/
