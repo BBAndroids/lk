@@ -358,4 +358,5 @@ void mmc_put_card_to_sleep(struct mmc_device *dev);
 bool mmc_set_drv_type(struct sdhci_host *host, struct mmc_card *card, uint8_t drv_type);
 /* API: Send the read & write command sequence to rpmb */
 uint32_t mmc_sdhci_rpmb_send(struct mmc_device *dev, struct mmc_command *cmd);
+uint32_t mmc_sdhci_set_active_partition(struct mmc_device *dev, int active);
 #endif

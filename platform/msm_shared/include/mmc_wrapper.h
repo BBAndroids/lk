@@ -51,4 +51,5 @@ void  mmc_read_partition_table(uint8_t arg);
 uint32_t mmc_write_protect(const char *name, int set_clr);
 int ufs_set_boot_lun(uint32_t boot_lun_id);
 int ufs_get_boot_lun();
+uint32_t mmc_set_active_partition(int active);
 #endif

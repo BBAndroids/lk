@@ -701,3 +701,12 @@ uint32_t mmc_write_protect(const char *ptn_name, int set_clr)
 
 	return 0;
 }
+
+uint32_t mmc_set_active_partition(int active)
+{
+	uint32_t ret = mmc_sdhci_set_active_partition(target_mmc_device(), active);
+	if (ret)
+		dprintf("Failed setting partition to %d\n", active);
+
+	return ret;
+}
