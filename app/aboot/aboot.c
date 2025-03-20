@@ -3180,7 +3180,7 @@ int splash_screen_flash()
 				dprintf(CRITICAL, "ERROR: Cannot read splash image from partition\n");
 				return -1;
 			}
-			fbcon_extract_to_screen(header, base);
+			fbcon_extract_to_screen(header, -1, -1, base);
 			return 0;
 		}
 
@@ -3292,7 +3292,7 @@ int splash_screen_mmc()
 				return -1;
 			}
 
-			fbcon_extract_to_screen(header, (base + LOGO_IMG_HEADER_SIZE));
+			fbcon_extract_to_screen(header, -1, -1, (base + LOGO_IMG_HEADER_SIZE));
 		} else { /* 2 Raw BGR data */
 
 			if ((header->width > fb_display->width) || (header->height > fb_display->height)) {

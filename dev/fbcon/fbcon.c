@@ -418,12 +418,45 @@ struct fbcon_config* fbcon_display(void)
 	return config;
 }
 
-void fbcon_extract_to_screen(logo_img_header *header, void* address)
+void fbcon_copy_to_screen(logo_img_header *header, void *address)
+{
+	unsigned i = 0;
+	unsigned total_x;
+	unsigned total_y;
+	unsigned bytes_per_bpp;
+	unsigned image_base;
+
+	total_x = config->width;
+	total_y = config->height;
+	bytes_per_bpp = ((config->bpp) / 8);
+	image_base = ((((total_y/2) - (header->height / 2) - 1) *
+			(config->width)) + (total_x/2 - (header->width / 2)));
+
+#if DISPLAY_TYPE_MIPI
+	if (bytes_per_bpp == 3) {
+		for (i = 0; i < header->height; i++) {
+			memcpy (config->base + ((image_base + (i * (config->width))) * bytes_per_bpp),
+			address + (i * header->width * bytes_per_bpp),
+			header->width * bytes_per_bpp);
+		}
+	}
+#else
+	if (bytes_per_bpp == 2) {
+		for (i = 0; i < header->height; i++) {
+			memcpy (config->base + ((image_base + (i * (config->width))) * bytes_per_bpp),
+			address + (i * SPLASH_IMAGE_WIDTH * bytes_per_bpp),
+			SPLASH_IMAGE_WIDTH * bytes_per_bpp);
+		}
+	}
+#endif
+}
+
+void fbcon_extract_to_screen(logo_img_header *header, int x, int y, void *address)
 {
 	const uint8_t *imagestart = (const uint8_t *)address;
-	uint pos = 0, offset;
+	uint pos = 0;
 	uint count = 0;
-	uint x = 0, y = 0;
+	uint posx = 0, posy = 0;
 	uint8_t *base, *p;
 
 	if (!config || header->width > config->width
@@ -434,13 +467,15 @@ void fbcon_extract_to_screen(logo_img_header *header, void* address)
 
 	base = (uint8_t *) config->base;
 
-	/* put the logo to be center */
-	offset = (config->height - header->height) / 2;
-	if (offset)
-		base += (offset * config->width) * 3;
-	offset = (config->width - header->width ) / 2;
+	if (x == -1)
+		x = (config->width - header->width) / 2;
 
-	x = offset;
+	if (y == -1)
+		y = (config->height - header->height) / 2;
+
+	if (y)
+		base += (y * config->width) * 3;
+	posx = x;
 	while (count < (uint)header->height * (uint)header->width) {
 		uint8_t run = *(imagestart + pos);
 		bool repeat_run = (run & 0x80);
@@ -450,7 +485,7 @@ void fbcon_extract_to_screen(logo_img_header *header, void* address)
 		/* consume the run byte */
 		pos++;
 
-		p = base + (y * config->width + x) * 3;
+		p = base + (posy * config->width + posx) * 3;
 
 		/* start of a run */
 		for (runpos = 0; runpos < runlen; runpos++) {
@@ -459,7 +494,7 @@ void fbcon_extract_to_screen(logo_img_header *header, void* address)
 			*p++ = *(imagestart + pos + 2);
 			count++;
 
-			x++;
+			posx++;
 
 			/* if a run of raw pixels, consume an input pixel */
 			if (!repeat_run)
@@ -472,9 +507,9 @@ void fbcon_extract_to_screen(logo_img_header *header, void* address)
 
 		/* the generator will keep compressing data line by line */
 		/* don't cross the lines */
-		if (x == header->width + offset) {
-			y++;
-			x = offset;
+		if (posx == header->width + x) {
+			posy++;
+			posx = x;
 		}
 	}
 
@@ -482,65 +517,43 @@ void fbcon_extract_to_screen(logo_img_header *header, void* address)
 
 void display_default_image_on_screen(void)
 {
-#ifndef SPLASH_IMAGE_RLE
-	unsigned i = 0;
-	unsigned total_x;
-	unsigned total_y;
-#endif
-	unsigned bytes_per_bpp;
-#ifndef SPLASH_IMAGE_RLE
-	unsigned image_base;
-#endif
-
 	if (!config) {
 		dprintf(CRITICAL,"NULL configuration, image cannot be displayed\n");
 		return;
 	}
 
-	fbcon_clear(); // clear screen with Black color
-
 #ifndef SPLASH_IMAGE_RLE
-	total_x = config->width;
-	total_y = config->height;
-#endif
-	bytes_per_bpp = ((config->bpp) / 8);
-#ifndef SPLASH_IMAGE_RLE
-	image_base = ((((total_y/2) - (SPLASH_IMAGE_HEIGHT / 2) - 1) *
-			(config->width)) + (total_x/2 - (SPLASH_IMAGE_WIDTH / 2)));
+	unsigned bytes_per_bpp = ((config->bpp) / 8);
 #endif
 
-#if DISPLAY_TYPE_MIPI
-	if (bytes_per_bpp == 3) {
+	// fbcon_clear(); // clear screen with Black color
+
+	logo_img_header header;
+	header.width = SPLASH_IMAGE_WIDTH;
+	header.height = SPLASH_IMAGE_HEIGHT;
 #ifndef SPLASH_IMAGE_RLE
-		for (i = 0; i < SPLASH_IMAGE_HEIGHT; i++) {
-			memcpy (config->base + ((image_base + (i * (config->width))) * bytes_per_bpp),
-			imageBuffer_rgb888 + (i * SPLASH_IMAGE_WIDTH * bytes_per_bpp),
-			SPLASH_IMAGE_WIDTH * bytes_per_bpp);
-		}
+	if (bytes_per_bpp == 3)
+		fbcon_copy_to_screen(&header, imageBuffer_rgb888);
+	else if (bytes_per_bpp == 2)
+		fbcon_copy_to_screen(&header, imageBuffer);
 #else
-		logo_img_header header;
-		header.width = SPLASH_IMAGE_WIDTH;
-		header.height = SPLASH_IMAGE_HEIGHT;
-		fbcon_extract_to_screen(&header, imageBuffer_rgb888);
-#endif
-	}
-	fbcon_flush();
-#if DISPLAY_MIPI_PANEL_NOVATEK_BLUE
-	if(is_cmd_mode_enabled())
-		mipi_dsi_cmd_mode_trigger();
+	fbcon_extract_to_screen(&header, -1, -1, imageBuffer_rgb888);
 #endif
 
+#ifdef SPLASH_IMAGE2_WIDTH
+	header.width = SPLASH_IMAGE2_WIDTH;
+	header.height = SPLASH_IMAGE2_HEIGHT;
+#ifndef SPLASH_IMAGE_RLE
+	if (bytes_per_bpp == 3)
+		fbcon_copy_to_screen(&header, imageBuffer2_rgb888);
+	else if (bytes_per_bpp == 2)
+		fbcon_copy_to_screen(&header, imageBuffer2);
 #else
-
-	if (bytes_per_bpp == 2) {
-		for (i = 0; i < SPLASH_IMAGE_HEIGHT; i++) {
-			memcpy (config->base + ((image_base + (i * (config->width))) * bytes_per_bpp),
-			imageBuffer + (i * SPLASH_IMAGE_WIDTH * bytes_per_bpp),
-			SPLASH_IMAGE_WIDTH * bytes_per_bpp);
-		}
-	}
-	fbcon_flush();
+	fbcon_extract_to_screen(&header, -1, config->height - header.height - 57, imageBuffer2_rgb888);
 #endif
+#endif
+
+	fbcon_flush();
 }
 
 
