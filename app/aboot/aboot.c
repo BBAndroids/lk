@@ -3760,8 +3760,6 @@ fastboot:
 	/* We are here means regular boot did not happen. Start fastboot. */
 	if (is_backup_bootchain())
 		qpnp_led_set(0xFF, 0, 0);
-	else
-		qpnp_led_set(0xFF, 0, 0);
 
 	/* register aboot specific fastboot commands */
 	aboot_fastboot_register_commands();
