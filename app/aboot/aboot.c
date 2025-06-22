@@ -181,8 +181,9 @@ static const char *skip_ramfs = " skip_initramfs";
 static const char *sys_path_cmdline = " rootwait ro init=/init";
 static const char *sys_path = "  root=/dev/mmcblk0p";
 #if WITH_DEBUG_UART
-static const char *uart_cmdline = "";
-//static const char *uart_cmdline = " console=ttyHSL0,115200,n8 earlyprintk";
+static const char *uart_cmdline = " console=ttyHSL0,115200,n8 earlyprintk";
+#else
+static const char *uart_cmdline = " console=null";
 #endif
 static const char *bbry_hwid = " androidboot.binfo.hwid=";
 static const char *bbry_rev = " androidboot.binfo.rev=";
@@ -457,6 +458,8 @@ unsigned char *update_cmdline(const char * cmdline)
 #if WITH_DEBUG_UART
 	if (device.jack_uart_enabled)
 		cmdline_len += strlen(uart_cmdline);
+#else
+	cmdline_len += strlen(uart_cmdline);
 #endif
 
 	char *product = bbry_get_product();
@@ -701,6 +704,10 @@ unsigned char *update_cmdline(const char * cmdline)
 			src = uart_cmdline;
 			while ((*dst++ = *src++));
 		}
+#else
+		if (have_cmdline) --dst;
+		src = uart_cmdline;
+		while ((*dst++ = *src++));
 #endif
 
 		if (have_cmdline) --dst;

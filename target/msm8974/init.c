@@ -111,9 +111,8 @@ void target_early_init(void)
 {
 #if WITH_DEBUG_UART
 	bbry_uart_on_jack(1);
-
-	uart_dm_init(1, 0, BLSP1_UART1_BASE);
 #endif
+	uart_dm_init(1, 0, BLSP1_UART1_BASE);
 }
 
 /* Return 1 if vol_up pressed */

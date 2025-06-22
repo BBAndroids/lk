@@ -214,6 +214,27 @@ static unsigned int msm_boot_uart_dm_init(uint32_t uart_dm_base)
 }
 
 /*
+ * Minimal UART_DM for system to boot successfully
+ */
+void msm_boot_uart_dm_init_nodebug(uint32_t uart_dm_base)
+{
+    // Reset UART block
+    msm_boot_uart_dm_reset(uart_dm_base);
+
+    // Clear mode registers
+    writel(0x0, MSM_BOOT_UART_DM_MR1(uart_dm_base));
+    writel(0x0, MSM_BOOT_UART_DM_MR2(uart_dm_base));
+
+    // Mask all interrupts to avoid unwanted activity
+    writel(0xFFFFFFFF, MSM_BOOT_UART_DM_IMR(uart_dm_base));
+
+    // Clear FIFOs watermarks and other registers to a safe state
+    writel(0, MSM_BOOT_UART_DM_TFWR(uart_dm_base));
+    writel(0, MSM_BOOT_UART_DM_RFWR(uart_dm_base));
+}
+
+
+/*
  * Initialize Receive Path
  */
 static unsigned int msm_boot_uart_dm_init_rx_transfer(uint32_t uart_dm_base)
@@ -417,7 +438,21 @@ void uart_dm_init(uint8_t id, uint32_t gsbi_base, uint32_t uart_dm_base)
 	port_lookup[port++] = uart_dm_base;
 
 	/* Set UART init flag */
-	uart_init_flag = 1;
+	uart_init_flag = 1; 
+
+}
+
+/* 
+ * Minimal UART_DM for system to boot successfully
+ */
+void uart_dm_init_nodebug(uint8_t id, uint32_t gsbi_base, uint32_t uart_dm_base)
+{
+        /* Configure the uart clock */
+        clock_config_uart_dm(id);
+        dsb();
+
+        /* Intialize UART_DM */
+        msm_boot_uart_dm_init_nodebug(uart_dm_base);
 }
 
 /* UART_DM uses four character word FIFO where as UART core
