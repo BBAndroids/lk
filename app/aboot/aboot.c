@@ -181,7 +181,8 @@ static const char *skip_ramfs = " skip_initramfs";
 static const char *sys_path_cmdline = " rootwait ro init=/init";
 static const char *sys_path = "  root=/dev/mmcblk0p";
 #if WITH_DEBUG_UART
-static const char *uart_cmdline = " console=ttyHSL0,115200,n8 earlyprintk";
+static const char *uart_cmdline = "";
+//static const char *uart_cmdline = " console=ttyHSL0,115200,n8 earlyprintk";
 #endif
 static const char *bbry_hwid = " androidboot.binfo.hwid=";
 static const char *bbry_rev = " androidboot.binfo.rev=";
@@ -974,8 +975,10 @@ void boot_linux(void *kernel, unsigned *tags,
 	dprintf(INFO, "booting linux @ %p, ramdisk @ %p (%d), tags/device tree @ %p\n",
 		entry, ramdisk, ramdisk_size, (void *)tags_phys);
 
+#if WITH_DEBUG_UART
 	if (!device.jack_uart_enabled)
 		bbry_uart_on_jack(0);
+#endif
 
 	enter_critical_section();
 
@@ -1141,7 +1144,7 @@ int boot_linux_from_mmc(void)
 		}
 	}
 	else {
-		qpnp_led_set(0x80, 0x80, 0);
+		qpnp_led_set(0, 0xFF, 0xFF);
 		index = partition_get_index("recovery");
 		ptn = partition_get_offset(index);
 		if(ptn == 0) {
@@ -3749,9 +3752,9 @@ retry_boot:
 fastboot:
 	/* We are here means regular boot did not happen. Start fastboot. */
 	if (is_backup_bootchain())
-		qpnp_led_set(0, 0, 0x80);
+		qpnp_led_set(0xFF, 0, 0);
 	else
-		qpnp_led_set(0x1E, 0, 0x80);
+		qpnp_led_set(0xFF, 0, 0);
 
 	/* register aboot specific fastboot commands */
 	aboot_fastboot_register_commands();

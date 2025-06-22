@@ -325,11 +325,9 @@ void target_init(void)
 
 	target_keystatus();
 
-#if PON_VIB_SUPPORT
-	vib_timed_turn_on(VIBRATE_TIME);
-#endif
-
 	disable_afp_wdog();
+
+	qpnp_led_set(0, 0, 0);
 
 	if (!target_battery_soc_ok())
 	{
@@ -339,16 +337,9 @@ void target_init(void)
 			if (!pm8xxx_is_charger_present())
 				shutdown_device();
 
-			qpnp_led_set(0x80, 0, 0);
-			thread_sleep(1000);
-
-			qpnp_led_set(0x0, 0, 0);
-			thread_sleep(1000);
-
 			pm8x41_wd_reset_pet();
 		}
 		pm8xxx_disable_charging();
-		qpnp_led_set(0, 0, 0);
 	}
 
 	/*
