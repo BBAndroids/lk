@@ -3119,7 +3119,7 @@ void cmd_oem_bootlog(const char *arg, void *data, unsigned sz)
 #if WITH_DEBUG_LOG_BUF
 	fastboot_info_buffer(lk_log_getbuf());
 #else
-	fastboot_info("logbuf disabled");
+	fastboot_info("xwtk.Harpocrat - Fastboot Mode");
 #endif
 
 	fastboot_okay("");
