@@ -2,4 +2,4 @@
 This LK is based on Balika011's BBAndroids/LK.
 Includes fixes and other improvements.
 
-This LK is optimized for use with xwtk.Harpocrat software on BlackBerry Passport, be cautious if integrating it to other ROMs or devices.
+This LK is optimized for use with xwtk.Harpocrat software on BlackBerry Passport, be cautious when integrating it to other ROMs or devices.
