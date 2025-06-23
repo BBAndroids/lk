@@ -526,7 +526,7 @@ void display_default_image_on_screen(void)
 	unsigned bytes_per_bpp = ((config->bpp) / 8);
 #endif
 
-	// fbcon_clear(); // clear screen with Black color
+	fbcon_clear(); // clear screen with Black color
 
 	logo_img_header header;
 	header.width = SPLASH_IMAGE_WIDTH;
@@ -538,19 +538,6 @@ void display_default_image_on_screen(void)
 		fbcon_copy_to_screen(&header, imageBuffer);
 #else
 	fbcon_extract_to_screen(&header, -1, -1, imageBuffer_rgb888);
-#endif
-
-#ifdef SPLASH_IMAGE2_WIDTH
-	header.width = SPLASH_IMAGE2_WIDTH;
-	header.height = SPLASH_IMAGE2_HEIGHT;
-#ifndef SPLASH_IMAGE_RLE
-	if (bytes_per_bpp == 3)
-		fbcon_copy_to_screen(&header, imageBuffer2_rgb888);
-	else if (bytes_per_bpp == 2)
-		fbcon_copy_to_screen(&header, imageBuffer2);
-#else
-	fbcon_extract_to_screen(&header, -1, config->height - header.height - 57, imageBuffer2_rgb888);
-#endif
 #endif
 
 	fbcon_flush();
