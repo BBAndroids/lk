@@ -111,8 +111,10 @@ void target_early_init(void)
 {
 #if WITH_DEBUG_UART
 	bbry_uart_on_jack(1);
-#endif
 	uart_dm_init(1, 0, BLSP1_UART1_BASE);
+#else
+	uart_dm_init_nodebug(1, 0, BLSP1_UART1_BASE);
+#endif
 }
 
 /* Return 1 if vol_up pressed */
