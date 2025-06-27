@@ -45,9 +45,9 @@ static bool is_thread_start = false;
 static struct select_msg_info msg_info;
 
 static char *fastboot_option_menu[] = {
-		[0] = "START\n",
-		[1] = "Restart bootloader\n",
-		[2] = "Recovery mode\n",
+		[0] = "Boot to System\n",
+		[1] = "Reboot to Fastboot\n",
+		[2] = "Boot to Recovery\n",
 		[3] = "Power off\n"};
 
 static int big_factor = 2;
@@ -172,7 +172,7 @@ void display_fastboot_menu_renew(struct select_msg_info *fastboot_msg_info)
 			break;
 		case 1:
 		case 2:
-			msg_type = FBCON_RED_MSG;
+			msg_type = FBCON_COMMON_MSG;
 			break;
 		case 3:
 		case 4:
@@ -183,48 +183,46 @@ void display_fastboot_menu_renew(struct select_msg_info *fastboot_msg_info)
 	display_fbcon_menu_message(fastboot_option_menu[option_index],
 		msg_type, big_factor);
 	fbcon_draw_line(msg_type);
-	display_fbcon_menu_message("\n\nPress volume key to select, and "\
-		"press power key to select\n\n", FBCON_COMMON_MSG, common_factor);
-
-	display_fbcon_menu_message("FASTBOOT MODE\n", FBCON_RED_MSG, common_factor);
-
+	display_fbcon_menu_message("Fastboot Mode\n", FBCON_COMMON_MSG, big_factor);
+	display_fbcon_menu_message("Volume keys to choose\nPower key to select\n\n\n\n\n\n\n", FBCON_COMMON_MSG, common_factor);
+	display_fbcon_menu_message("Device Information\n", FBCON_COMMON_MSG, big_factor);
 	get_product_name((unsigned char *) msg_buf);
-	snprintf(msg, sizeof(msg), "Name: - %s\n", msg_buf);
+	snprintf(msg, sizeof(msg), "%s", msg_buf);
 	display_fbcon_menu_message(msg, FBCON_COMMON_MSG, common_factor);
 
 	char *product = bbry_get_product();
 	if (product) {
-		snprintf(msg, sizeof(msg), "Codename: %s\n", product);
+		snprintf(msg, sizeof(msg), " (%s)", product);
 		display_fbcon_menu_message(msg, FBCON_COMMON_MSG, common_factor);
 	}
 
 	char *variant = bbry_get_variant();
 	if (variant) {
-		snprintf(msg, sizeof(msg), "Variant: %s\n", variant);
+		snprintf(msg, sizeof(msg), "\nVariant: %s", variant);
 		display_fbcon_menu_message(msg, FBCON_COMMON_MSG, common_factor);
 	}
 	
 	
-	snprintf(msg, sizeof(msg), "HWID: 0x%x\n", bbry_get_hwid());
+	snprintf(msg, sizeof(msg), "\nHWID: 0x%x", bbry_get_hwid());
 	display_fbcon_menu_message(msg, FBCON_COMMON_MSG, common_factor);
 	
 	
 	const char *pcb_rev = bbry_hwi_get_entry("pcb_rev", 0);
 	if (variant) {
-		snprintf(msg, sizeof(msg), "PCB revision: %s\n", pcb_rev);
+		snprintf(msg, sizeof(msg), "\nPCB: %s", pcb_rev);
 		display_fbcon_menu_message(msg, FBCON_COMMON_MSG, common_factor);
 	}
 	
 	
 	const char *pop_rev = bbry_hwi_get_entry("pop_rev", 0);
 	if (variant) {
-		snprintf(msg, sizeof(msg), "POP revision: %s\n", pop_rev);
+		snprintf(msg, sizeof(msg), "\nPOP: %s", pop_rev);
 		display_fbcon_menu_message(msg, FBCON_COMMON_MSG, common_factor);
 	}
 
 	memset(msg_buf, 0, sizeof(msg_buf));
 	target_serialno((unsigned char *) msg_buf);
-	snprintf(msg, sizeof(msg), "Serial number: %s\n", msg_buf);
+	snprintf(msg, sizeof(msg), "\nS/N: %s", msg_buf);
 	display_fbcon_menu_message(msg, FBCON_COMMON_MSG, common_factor);
 
 	fastboot_msg_info->info.msg_type = DISPLAY_MENU_FASTBOOT;
