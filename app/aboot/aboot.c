@@ -159,6 +159,8 @@ static const char *emmc_cmdline = " androidboot.emmc=true";
 #endif
 static const char *usb_sn_cmdline = " androidboot.serialno=";
 
+static const char *bootver_cmdline = " androidboot.bootloader=AA001";
+
 static const char *alarmboot_cmdline = " androidboot.alarmboot=true";
 static const char *battchg_pause = " androidboot.mode=charger";
 static const char *secondary_gpt_enable = " gpt";
@@ -344,6 +346,8 @@ unsigned char *update_cmdline(const char * cmdline)
 
 	cmdline_len += strlen(usb_sn_cmdline);
 	cmdline_len += strlen(sn_buf);
+
+	cmdline_len += strlen(bootver_cmdline);
 
 	if (boot_into_recovery && gpt_exists)
 		cmdline_len += strlen(secondary_gpt_enable);
@@ -561,6 +565,10 @@ unsigned char *update_cmdline(const char * cmdline)
 		have_cmdline = 1;
 		while ((*dst++ = *src++));
 		src = sn_buf;
+		if (have_cmdline) --dst;
+		have_cmdline = 1;
+		while ((*dst++ = *src++));
+		src = bootver_cmdline;
 		if (have_cmdline) --dst;
 		have_cmdline = 1;
 		while ((*dst++ = *src++));

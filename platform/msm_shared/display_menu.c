@@ -176,7 +176,7 @@ void display_fastboot_menu_renew(struct select_msg_info *fastboot_msg_info)
 			break;
 		case 3:
 		case 4:
-			msg_type = FBCON_COMMON_MSG;
+			msg_type = FBCON_RED_MSG;
 			break;
 	}
 	fbcon_draw_line(msg_type);
