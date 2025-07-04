@@ -194,7 +194,7 @@ static const char *bbry_product = " androidboot.binfo.product=";
 static const char *bbry_variant = " androidboot.binfo.variant=";
 static const char *bbry_model_unknown = " androidboot.binfo.model=Unknown";
 static const char *bbry_model_wolverine = " androidboot.binfo.model=Passport";
-static const char *bbry_model_oslo = " androidboot.binfo.model=\"Passport Silver Edition\"";
+static const char *bbry_model_oslo = " androidboot.binfo.model=\"Passport SE\"";
 static const char *bbry_model_num_unknown = " androidboot.binfo.model_num=Unknown";
 static const char *bbry_model_num_sqw100_1 = " androidboot.binfo.model_num=SQW100-1";
 static const char *bbry_model_num_sqw100_2 = " androidboot.binfo.model_num=SQW100-2";
@@ -3479,7 +3479,7 @@ void get_product_name(unsigned char *buf)
 	if (strcmp(bbry_get_product(), "wolverine") == 0)
 		snprintf((char *)buf, MAX_RSP_SIZE, "Blackberry Passport");
 	else if (strcmp(bbry_get_product(), "oslo") == 0)
-		snprintf((char *)buf, MAX_RSP_SIZE, "Blackberry Passport Silver Edition");
+		snprintf((char *)buf, MAX_RSP_SIZE, "Blackberry Passport SE");
 	else if (strcmp(bbry_get_product(), "mockingbird") == 0)
 		snprintf((char *)buf, MAX_RSP_SIZE, "Blackberry \"Ontario\"");
 	else
