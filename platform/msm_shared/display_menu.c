@@ -184,7 +184,7 @@ void display_fastboot_menu_renew(struct select_msg_info *fastboot_msg_info)
 		msg_type, big_factor);
 	fbcon_draw_line(msg_type);
 	display_fbcon_menu_message("Fastboot Mode\n", FBCON_COMMON_MSG, big_factor);
-	display_fbcon_menu_message("Volume keys to choose\nPower key to select\n\n\n\n\n\n", FBCON_COMMON_MSG, common_factor);
+	display_fbcon_menu_message("Volume keys to select\nPower key to confirm choice\n\n\n\n\n\n", FBCON_COMMON_MSG, common_factor);
 
 	display_fbcon_menu_message("Device Information\n", FBCON_COMMON_MSG, big_factor);
 	get_product_name((unsigned char *) msg_buf);
