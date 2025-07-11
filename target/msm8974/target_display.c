@@ -91,9 +91,9 @@ static struct ldo_entry ldo_entry_array_mockingbird[] = {
 
 static struct pm8x41_wled_data wled_ctrl = {
 	.mod_scheme      = 0x00,
-	.led1_brightness = 0x04CD,
-	.led2_brightness = 0x04CD,
-	.led3_brightness = 0x04CD,
+	.led1_brightness = 0x0300,
+	.led2_brightness = 0x0300,
+	.led3_brightness = 0x0300,
 	.max_duty_cycle  = 0x01,
 	.ovp = 0x2,
 	.full_current_scale = 0x19
