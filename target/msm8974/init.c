@@ -328,10 +328,9 @@ void target_init(void)
 
 	disable_afp_wdog();
 
-	qpnp_led_set(0xFF, 0, 0);
-	thread_sleep(1000);
 	qpnp_led_set(0, 0, 0);
-
+	thread_sleep(1000);
+	
 	if (!target_battery_soc_ok())
 	{
 		pm8xxx_enable_charging();
