@@ -71,8 +71,8 @@ static struct udc_device surf_udc_device = {
 	.vendor_id    = 0x18D1,
 	.product_id   = 0x4EE7,
 	.version_id   = 0x0242,
-	.manufacturer = "xwtk.Solutions",
-	.product      = "Harpocrat Bootloader",
+	.manufacturer = "BlackBerry",
+	.product      = "Passport",
 };
 
 static struct udc_gadget fastboot_gadget = {
