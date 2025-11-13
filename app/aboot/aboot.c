@@ -159,6 +159,8 @@ static const char *emmc_cmdline = " androidboot.emmc=true";
 #endif
 static const char *usb_sn_cmdline = " androidboot.serialno=";
 
+static const char *bootver_cmdline = " androidboot.bootloader=AA001";
+
 static const char *alarmboot_cmdline = " androidboot.alarmboot=true";
 static const char *battchg_pause = " androidboot.mode=charger";
 static const char *secondary_gpt_enable = " gpt";
@@ -182,6 +184,8 @@ static const char *sys_path_cmdline = " rootwait ro init=/init";
 static const char *sys_path = "  root=/dev/mmcblk0p";
 #if WITH_DEBUG_UART
 static const char *uart_cmdline = " console=ttyHSL0,115200,n8 earlyprintk";
+#else
+static const char *uart_cmdline = " console=null";
 #endif
 static const char *bbry_hwid = " androidboot.binfo.hwid=";
 static const char *bbry_rev = " androidboot.binfo.rev=";
@@ -190,7 +194,7 @@ static const char *bbry_product = " androidboot.binfo.product=";
 static const char *bbry_variant = " androidboot.binfo.variant=";
 static const char *bbry_model_unknown = " androidboot.binfo.model=Unknown";
 static const char *bbry_model_wolverine = " androidboot.binfo.model=Passport";
-static const char *bbry_model_oslo = " androidboot.binfo.model=\"Passport Silver Edition\"";
+static const char *bbry_model_oslo = " androidboot.binfo.model=\"Passport SE\"";
 static const char *bbry_model_num_unknown = " androidboot.binfo.model_num=Unknown";
 static const char *bbry_model_num_sqw100_1 = " androidboot.binfo.model_num=SQW100-1";
 static const char *bbry_model_num_sqw100_2 = " androidboot.binfo.model_num=SQW100-2";
@@ -343,6 +347,8 @@ unsigned char *update_cmdline(const char * cmdline)
 	cmdline_len += strlen(usb_sn_cmdline);
 	cmdline_len += strlen(sn_buf);
 
+	cmdline_len += strlen(bootver_cmdline);
+
 	if (boot_into_recovery && gpt_exists)
 		cmdline_len += strlen(secondary_gpt_enable);
 
@@ -456,6 +462,8 @@ unsigned char *update_cmdline(const char * cmdline)
 #if WITH_DEBUG_UART
 	if (device.jack_uart_enabled)
 		cmdline_len += strlen(uart_cmdline);
+#else
+	cmdline_len += strlen(uart_cmdline);
 #endif
 
 	char *product = bbry_get_product();
@@ -557,6 +565,10 @@ unsigned char *update_cmdline(const char * cmdline)
 		have_cmdline = 1;
 		while ((*dst++ = *src++));
 		src = sn_buf;
+		if (have_cmdline) --dst;
+		have_cmdline = 1;
+		while ((*dst++ = *src++));
+		src = bootver_cmdline;
 		if (have_cmdline) --dst;
 		have_cmdline = 1;
 		while ((*dst++ = *src++));
@@ -700,6 +712,10 @@ unsigned char *update_cmdline(const char * cmdline)
 			src = uart_cmdline;
 			while ((*dst++ = *src++));
 		}
+#else
+		if (have_cmdline) --dst;
+		src = uart_cmdline;
+		while ((*dst++ = *src++));
 #endif
 
 		if (have_cmdline) --dst;
@@ -974,8 +990,10 @@ void boot_linux(void *kernel, unsigned *tags,
 	dprintf(INFO, "booting linux @ %p, ramdisk @ %p (%d), tags/device tree @ %p\n",
 		entry, ramdisk, ramdisk_size, (void *)tags_phys);
 
+#if WITH_DEBUG_UART
 	if (!device.jack_uart_enabled)
 		bbry_uart_on_jack(0);
+#endif
 
 	enter_critical_section();
 
@@ -1141,7 +1159,7 @@ int boot_linux_from_mmc(void)
 		}
 	}
 	else {
-		qpnp_led_set(0x80, 0x80, 0);
+		qpnp_led_set(0, 0xFF, 0xFF);
 		index = partition_get_index("recovery");
 		ptn = partition_get_offset(index);
 		if(ptn == 0) {
@@ -3109,7 +3127,7 @@ void cmd_oem_bootlog(const char *arg, void *data, unsigned sz)
 #if WITH_DEBUG_LOG_BUF
 	fastboot_info_buffer(lk_log_getbuf());
 #else
-	fastboot_info("logbuf disabled");
+	fastboot_info("xwtk.Harpocrat - Fastboot Mode");
 #endif
 
 	fastboot_okay("");
@@ -3461,7 +3479,7 @@ void get_product_name(unsigned char *buf)
 	if (strcmp(bbry_get_product(), "wolverine") == 0)
 		snprintf((char *)buf, MAX_RSP_SIZE, "Blackberry Passport");
 	else if (strcmp(bbry_get_product(), "oslo") == 0)
-		snprintf((char *)buf, MAX_RSP_SIZE, "Blackberry Passport Silver Edition");
+		snprintf((char *)buf, MAX_RSP_SIZE, "Blackberry Passport SE");
 	else if (strcmp(bbry_get_product(), "mockingbird") == 0)
 		snprintf((char *)buf, MAX_RSP_SIZE, "Blackberry \"Ontario\"");
 	else
@@ -3749,9 +3767,7 @@ retry_boot:
 fastboot:
 	/* We are here means regular boot did not happen. Start fastboot. */
 	if (is_backup_bootchain())
-		qpnp_led_set(0, 0, 0x80);
-	else
-		qpnp_led_set(0x1E, 0, 0x80);
+		qpnp_led_set(0xFF, 0, 0);
 
 	/* register aboot specific fastboot commands */
 	aboot_fastboot_register_commands();

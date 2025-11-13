@@ -111,8 +111,9 @@ void target_early_init(void)
 {
 #if WITH_DEBUG_UART
 	bbry_uart_on_jack(1);
-
 	uart_dm_init(1, 0, BLSP1_UART1_BASE);
+#else
+	uart_dm_init_nodebug(1, 0, BLSP1_UART1_BASE);
 #endif
 }
 
@@ -325,12 +326,11 @@ void target_init(void)
 
 	target_keystatus();
 
-#if PON_VIB_SUPPORT
-	vib_timed_turn_on(VIBRATE_TIME);
-#endif
-
 	disable_afp_wdog();
 
+	qpnp_led_set(0, 0, 0);
+	thread_sleep(1000);
+	
 	if (!target_battery_soc_ok())
 	{
 		pm8xxx_enable_charging();
@@ -339,16 +339,9 @@ void target_init(void)
 			if (!pm8xxx_is_charger_present())
 				shutdown_device();
 
-			qpnp_led_set(0x80, 0, 0);
-			thread_sleep(1000);
-
-			qpnp_led_set(0x0, 0, 0);
-			thread_sleep(1000);
-
 			pm8x41_wd_reset_pet();
 		}
 		pm8xxx_disable_charging();
-		qpnp_led_set(0, 0, 0);
 	}
 
 	/*

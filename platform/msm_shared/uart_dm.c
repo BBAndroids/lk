@@ -417,7 +417,21 @@ void uart_dm_init(uint8_t id, uint32_t gsbi_base, uint32_t uart_dm_base)
 	port_lookup[port++] = uart_dm_base;
 
 	/* Set UART init flag */
-	uart_init_flag = 1;
+	uart_init_flag = 1; 
+
+}
+
+/* 
+ * Minimal UART_DM for system to boot successfully
+ */
+void uart_dm_init_nodebug(uint8_t id, uint32_t gsbi_base, uint32_t uart_dm_base)
+{
+        /* Configure the uart clock */
+        clock_config_uart_dm(id);
+        dsb();
+
+        /* Intialize UART_DM */
+        msm_boot_uart_dm_init(uart_dm_base);
 }
 
 /* UART_DM uses four character word FIFO where as UART core

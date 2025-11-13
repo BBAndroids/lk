@@ -11,7 +11,7 @@
 
 #if PON_VIB_SUPPORT
 #include <vibrator.h>
-#define VIBRATE_TIME 750
+#define VIBRATE_TIME 250
 #endif
 
 static thread_t *blink_thread = NULL;
@@ -63,7 +63,7 @@ static int bbry_blink(void *p_blink_code)
 	vib_timed_turn_on(VIBRATE_TIME);
 #endif
 
-	qpnp_led_set(0x80, 0, 0);
+	qpnp_led_set(0xFF, 0, 0);
 
 	thread_sleep(1000);
 
